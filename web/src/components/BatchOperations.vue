@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onUnmounted, ref } from "vue";
+import { computed, onUnmounted, ref, watch } from "vue";
 import {
   api,
   task,
@@ -24,6 +24,13 @@ const filtered = computed(() =>
   ),
 );
 const selected = ref<string[]>([]);
+watch(group, () => {
+  selected.value = [];
+});
+const selectedOnline = computed(() =>
+  filtered.value.filter((n) => selected.value.includes(n.id) && online(n)),
+);
+const stopQueued = ref(false);
 const rules = ref<Rule[]>([]);
 const ruleID = ref("");
 const path = ref("/var/log");
@@ -38,7 +45,7 @@ onUnmounted(() => controller.abort());
 interface Row {
   id: string;
   name: string;
-  status: "pending" | "running" | "succeeded" | "failed";
+  status: "pending" | "running" | "succeeded" | "failed" | "not_submitted";
   scan?: Scan;
   plan?: Plan;
   error?: string;
@@ -82,10 +89,9 @@ function selectVisible() {
     .map((n) => n.id);
 }
 async function run(kind: "scan" | "preview") {
+  if (busy.value) return;
   error.value = "";
-  const targets = props.nodes.filter(
-    (n) => selected.value.includes(n.id) && online(n),
-  );
+  const targets = selectedOnline.value;
   if (!targets.length || targets.length > 20) {
     error.value = t("请选择 1–20 台在线节点");
     return;
@@ -102,9 +108,14 @@ async function run(kind: "scan" | "preview") {
     status: "pending",
   }));
   busy.value = true;
+  stopQueued.value = false;
   let next = 0;
   async function worker() {
-    while (!controller.signal.aborted && next < rows.value.length) {
+    while (
+      !controller.signal.aborted &&
+      !stopQueued.value &&
+      next < rows.value.length
+    ) {
       const row = rows.value[next++];
       row.status = "running";
       try {
@@ -127,6 +138,9 @@ async function run(kind: "scan" | "preview") {
   try {
     await Promise.all([worker(), worker()]);
   } finally {
+    for (const row of rows.value) {
+      if (row.status === "pending") row.status = "not_submitted";
+    }
     busy.value = false;
   }
 }
@@ -141,6 +155,17 @@ async function run(kind: "scan" | "preview") {
       }}
     </p>
     <p v-if="error" class="error" role="alert">{{ systemText(error) }}</p>
+    <div class="toolbar">
+      <span class="hint">{{
+        t("已选择 {count} 台在线节点", { count: selectedOnline.length })
+      }}</span>
+      <button v-if="busy" :disabled="stopQueued" @click="stopQueued = true">
+        {{ t("停止后续提交") }}
+      </button>
+      <span v-if="busy && stopQueued" class="hint">{{
+        t("等待已提交任务完成，剩余节点不会提交。")
+      }}</span>
+    </div>
     <div class="card">
       <div class="toolbar">
         <label
@@ -174,7 +199,11 @@ async function run(kind: "scan" | "preview") {
                   v-model="selected"
                   type="checkbox"
                   :value="n.id"
-                  :disabled="busy || !online(n)"
+                  :disabled="
+                    busy ||
+                    !online(n) ||
+                    (selected.length >= 20 && !selected.includes(n.id))
+                  "
                   :aria-label="n.name"
                 />
               </td>
@@ -198,7 +227,7 @@ async function run(kind: "scan" | "preview") {
           }}<input v-model="path" :disabled="busy" maxlength="4096" /></label
         ><button
           class="primary"
-          :disabled="busy || !selected.length || !path.startsWith('/')"
+          :disabled="busy || !selectedOnline.length || !path.startsWith('/')"
           @click="run('scan')"
         >
           {{ t("批量扫描") }}
@@ -213,7 +242,7 @@ async function run(kind: "scan" | "preview") {
             </option>
           </select></label
         ><button
-          :disabled="busy || !selected.length || !ruleID"
+          :disabled="busy || !selectedOnline.length || !ruleID"
           @click="run('preview')"
         >
           {{ t("批量预览") }}
@@ -230,7 +259,9 @@ async function run(kind: "scan" | "preview") {
     <article v-for="row in rows" :key="row.id" class="card">
       <div class="toolbar spread">
         <h3>{{ row.name }}</h3>
-        <span>{{ systemText(row.status) }}</span
+        <span>{{
+          row.status === "not_submitted" ? t("未提交") : systemText(row.status)
+        }}</span
         ><button @click="emit('select', row.id)">{{ t("磁盘分析") }}</button>
       </div>
       <p v-if="row.error" class="error">{{ systemText(row.error) }}</p>

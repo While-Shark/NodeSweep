@@ -1008,5 +1008,24 @@ export const messages = {
   操作: ["Actions", "操作", "작업", "操作"],
   扫描路径: ["Scan path", "スキャンパス", "스캔 경로", "掃描路徑"],
   保存: ["Save", "保存", "저장", "儲存"],
+  "已选择 {count} 台在线节点": [
+    "{count} online nodes selected",
+    "オンラインノードを{count}台選択中",
+    "온라인 노드 {count}개 선택됨",
+    "已選擇 {count} 台線上節點",
+  ],
+  停止后续提交: [
+    "Stop further submissions",
+    "追加送信を停止",
+    "추가 제출 중지",
+    "停止後續提交",
+  ],
+  "等待已提交任务完成，剩余节点不会提交。": [
+    "Waiting for submitted tasks to finish. Remaining nodes will not be submitted.",
+    "送信済みタスクの完了を待っています。残りのノードは送信しません。",
+    "제출한 작업이 완료되기를 기다립니다. 나머지 노드는 제출하지 않습니다.",
+    "等待已提交任務完成，其餘節點不會提交。",
+  ],
+  未提交: ["Not submitted", "未送信", "제출되지 않음", "未提交"],
 } as const;
 export type MessageKey = keyof typeof messages;

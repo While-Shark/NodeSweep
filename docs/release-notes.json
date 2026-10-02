@@ -1,35 +1,35 @@
 {
-  "version": "0.1.0-alpha.3",
+  "version": "0.1.0-alpha.4",
   "changes": {
     "en": [
-      "Add persistent node groups and renaming, with group filters in the overview and batch workspace. Metric reports preserve administrator edits.",
-      "Add non-destructive batch scans and rule previews for up to 20 online nodes, processing two at a time. Each node reports its own result or error; offline nodes are excluded and one failure does not block the others.",
-      "Keep local directory allowlists and individual cleanup confirmation. Leaving the batch page stops further submissions and browser polling; already submitted tasks remain available in task history.",
-      "Add five-language UI, documentation and release notes, with regression checks for metadata authorization, persistence, stale metrics, node isolation, partial failures and mobile layouts."
+      "Fix batch selection leaking across node groups: switching groups clears selection, and submissions include only visible online nodes.",
+      "Limit checkbox selection to 20 nodes and show the selected online-node count.",
+      "Add Stop further submissions. The two submitted workers finish normally, remaining nodes show Not submitted, and no remote task is cancelled or replayed.",
+      "Add five-language browser regressions for group selection, two-worker queue stopping, leaving the page and mobile layouts."
     ],
     "zh-CN": [
-      "加入持久化节点分组、重命名及总览和批量页面分组筛选；指标上报保留管理员修改。",
-      "加入不删除文件的批量扫描和规则预览，每批最多 20 台在线节点、同时处理 2 台；结果与错误按节点显示，排除离线节点，单台失败不阻断其他节点。",
-      "保留节点本地允许目录与单节点清理确认；离开批量页面停止后续提交和浏览器轮询，已提交任务仍可在任务记录查看。",
-      "同步五语界面、文档及发布说明，补充元数据权限、持久化、旧指标覆盖、节点隔离、部分失败及移动端回归验证。"
+      "修复批量操作跨分组保留勾选的问题：切换分组清空选择，仅向当前可见且在线的节点提交任务。",
+      "限制勾选最多 20 台，并显示已选择的在线节点数量。",
+      "加入停止后续提交：已提交的两个任务正常完成，其余节点显示未提交，不远程中止或重放任务。",
+      "新增五语浏览器回归，覆盖分组选择、双任务队列停止、离开页面和手机布局。"
     ],
     "zh-TW": [
-      "加入持久化節點分組、重新命名及總覽與批次頁面分組篩選；指標上報保留管理員修改。",
-      "加入不刪除檔案的批次掃描和規則預覽，每批最多 20 台線上節點、同時處理 2 台；逐節點顯示結果與錯誤，排除離線節點，單台失敗不阻斷其他節點。",
-      "保留節點本機允許目錄與單節點清理確認；離開批次頁面停止後續提交和瀏覽器輪詢，已提交任務仍可在任務紀錄查看。",
-      "同步五語介面、文件及發布說明，補充中繼資料權限、持久化、舊指標覆蓋、節點隔離、部分失敗及行動版回歸驗證。"
+      "修復批次操作跨分組保留勾選的問題：切換分組清空選擇，僅向目前可見且線上的節點提交任務。",
+      "限制勾選最多 20 台，並顯示已選擇的線上節點數量。",
+      "加入停止後續提交：已提交的兩個任務正常完成，其餘節點顯示未提交，不遠端中止或重播任務。",
+      "新增五語瀏覽器回歸，涵蓋分組選擇、雙任務佇列停止、離開頁面和手機版面。"
     ],
     "ja": [
-      "永続的なノードグループと名前変更、概要と一括ページのグループ絞り込みを追加。メトリクスの報告は管理者の変更を保持します。",
-      "削除を行わない一括スキャンとルールプレビューを追加。オンラインノードを最大20台、同時に2台処理します。結果とエラーを個別表示し、オフラインを除外して、一台の失敗で他の処理を止めません。",
-      "各ノードの許可ディレクトリと個別の削除確認を維持。ページを離れると追加の送信とブラウザーの確認を停止し、送信済みタスクは履歴で確認できます。",
-      "5言語のUI、文書、リリース説明を更新。権限、永続化、古いメトリクス、ノード分離、部分失敗、モバイル表示の回帰検証を追加。"
+      "グループを越えて選択が残る問題を修正。グループ変更で選択を解除し、表示中のオンラインノードだけに送信します。",
+      "チェックボックスの選択を最大20台に制限し、選択したオンラインノード数を表示します。",
+      "追加送信の停止を追加。送信済みの2タスクは完了を待ち、残りは未送信と表示します。遠隔タスクの中断や再実行はしません。",
+      "5言語のブラウザー回帰検証を追加。グループ選択、2ワーカーの送信停止、ページ離脱、モバイル表示を確認します。"
     ],
     "ko": [
-      "영구 노드 그룹과 이름 변경, 개요 및 일괄 페이지의 그룹 필터를 추가했습니다. 지표 보고 시 관리자 변경 내용을 유지합니다.",
-      "파일을 삭제하지 않는 일괄 스캔과 규칙 미리보기를 추가했습니다. 온라인 노드 최대 20개를 동시에 2개씩 처리합니다. 노드별 결과와 오류를 표시하고 오프라인 노드를 제외하며 한 노드의 실패가 다른 노드를 중단하지 않습니다.",
-      "각 노드의 로컬 허용 디렉터리와 개별 정리 확인을 유지합니다. 페이지를 떠나면 추가 제출과 브라우저 조회를 중단하며 이미 제출한 작업은 작업 기록에서 확인할 수 있습니다.",
-      "5개 언어 UI, 문서와 릴리스 설명을 업데이트했습니다. 권한, 영구 저장, 오래된 지표, 노드 격리, 부분 실패와 모바일 회귀 검증을 추가했습니다."
+      "그룹 변경 후 선택이 남는 문제를 수정했습니다. 그룹을 변경하면 선택을 지우고 표시된 온라인 노드에만 제출합니다.",
+      "체크박스 선택을 최대 20개로 제한하고 선택한 온라인 노드 수를 표시합니다.",
+      "추가 제출 중지를 추가했습니다. 제출한 두 작업은 정상 완료되며 나머지는 제출되지 않음으로 표시합니다. 원격 작업을 중단하거나 재실행하지 않습니다.",
+      "그룹 선택, 두 작업 큐 중지, 페이지 이탈과 모바일 화면을 확인하는 5개 언어 브라우저 회귀 검증을 추가했습니다."
     ]
   }
 }

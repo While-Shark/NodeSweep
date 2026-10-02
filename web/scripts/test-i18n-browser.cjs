@@ -431,6 +431,26 @@ const server = http.createServer((req, res) => {
           exact: true,
         })
         .click();
+      await page
+        .locator("main > section select")
+        .first()
+        .selectOption("g:production");
+      await page.waitForFunction(() =>
+        [
+          ...document.querySelectorAll("main > section input[type=checkbox]"),
+        ].every((n) => !n.checked),
+      );
+      assert.ok(
+        await page
+          .getByRole("button", { name: label(locale, "批量扫描"), exact: true })
+          .isDisabled(),
+      );
+      await page
+        .getByRole("button", {
+          name: label(locale, "选择本组在线节点"),
+          exact: true,
+        })
+        .click();
       const batchStart = submitted.length;
       await page
         .getByRole("button", { name: label(locale, "批量扫描"), exact: true })
@@ -490,6 +510,44 @@ const server = http.createServer((req, res) => {
         () => document.querySelectorAll(".node-card").length === 1,
       );
       assert.equal(await page.locator(".node-card").count(), 1);
+      fixtureNodes[2].lastSeen = new Date().toISOString();
+      await page.locator("aside nav button").nth(5).click();
+      await page.waitForFunction(
+        () =>
+          !document.querySelector('input[aria-label="offline-vps"]').disabled,
+      );
+      await page
+        .getByRole("button", {
+          name: label(locale, "选择本组在线节点"),
+          exact: true,
+        })
+        .click();
+      const stopStart = submitted.length;
+      await page
+        .getByRole("button", { name: label(locale, "批量扫描"), exact: true })
+        .click();
+      await page
+        .getByRole("button", {
+          name: label(locale, "停止后续提交"),
+          exact: true,
+        })
+        .click();
+      await page
+        .locator("article")
+        .filter({ hasText: label(locale, "未提交") })
+        .waitFor();
+      assert.equal(submitted.length - stopStart, 2); // Two workers, third node remains unsubmitted.
+      assert.ok(
+        submitted.slice(stopStart).every((x) => x.request.kind === "scan"),
+      );
+      assert.equal(executions, 1);
+      const leaveStart = submitted.length;
+      await page
+        .getByRole("button", { name: label(locale, "批量扫描"), exact: true })
+        .click();
+      await page.locator("aside nav button").nth(3).click();
+      await page.waitForTimeout(1200); // Allow old workers to reach the next queue item if cancellation is broken.
+      assert.equal(submitted.length - leaveStart, 2);
       for (const width of [390, 360]) {
         await page.setViewportSize({ width, height: 844 });
         for (let i = 0; i < 6; i++) {
@@ -509,7 +567,7 @@ const server = http.createServer((req, res) => {
       console.log(
         "PASS browser: " +
           locale +
-          " login, scan, dry run, cleanup report, alerts, node groups, batch isolation, export, enrollment and mobile layouts",
+          " login, scan, dry run, cleanup report, alerts, node groups, batch isolation, queue stop, page exit, export, enrollment and mobile layouts",
       );
     }
     const blocked = await browser.newContext({ locale: "ko-KR" });
