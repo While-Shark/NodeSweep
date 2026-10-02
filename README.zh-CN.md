@@ -86,6 +86,14 @@ go build -trimpath -ldflags='-s -w' -o nodesweep ./cmd/nodesweep
 
 ## 添加其他 VPS
 
+加入 Agent 配置向导，可设置管理端 HTTPS 地址、清理及扫描白名单、自定义面板目录；面板识别不会扩大清理权限。
+
+```bash
+./nodesweep -config nodesweep-agent.json -check
+```
+
+加入只读 -check 命令，检查本地配置、不跟随符号链接的目录访问及可见进程描述符；不启动服务、不连接管理端、不创建数据库，不输出凭证或管理端地址。
+
 1. 面板点击 **添加节点**，下载独立 Agent 配置。
 2. 把 `hub` 改成中央面板的 HTTPS 地址。
 3. 上传同一份对应 CPU 架构的二进制和配置文件到目标 VPS。
@@ -134,7 +142,7 @@ Nightly 仅在 master 有新提交且 CI 通过后自动更新，供测试使用
 
 ## 安装、报告与告警
 
-解压后运行 `sudo bash install.sh --start`。也可用 `sudo bash install.sh --download v0.1.0-alpha.5 --start` 校验并安装指定版本，测试可选择 nightly。升级保留配置、备份标准停机状态，启动失败自动恢复旧二进制；`--rollback` 只切换二进制，不覆盖当前数据库与配置。自定义数据路径需自行备份，旧快照需确认后手动清理。
+解压后运行 `sudo bash install.sh --start`。也可用 `sudo bash install.sh --download v0.1.0-alpha.6 --start` 校验并安装指定版本，测试可选择 nightly。升级保留配置、备份标准停机状态，启动失败自动恢复旧二进制；`--rollback` 只切换二进制，不覆盖当前数据库与配置。自定义数据路径需自行备份，旧快照需确认后手动清理。
 
 规则试运行解释匹配和排除原因，不创建可执行预览；清理报告显示逐文件结果、分配空间与执行时间，失败任务的部分结果可在任务记录查看。分配空间不等于磁盘可用空间净增加。
 

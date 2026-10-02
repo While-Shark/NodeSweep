@@ -22,6 +22,7 @@ body {
 }
 button,
 input,
+textarea,
 select {
   font: inherit;
 }
@@ -327,6 +328,7 @@ label {
   font-size: 12px;
 }
 input:not([type="checkbox"]),
+textarea,
 select {
   display: block;
   margin-top: 7px;
@@ -864,4 +866,8 @@ footer {
 }
 .batch-operations h3 {
   overflow-wrap: anywhere;
+}
+
+textarea {
+  resize: vertical;
 }

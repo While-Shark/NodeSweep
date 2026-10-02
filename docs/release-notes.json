@@ -1,35 +1,35 @@
 {
-  "version": "0.1.0-alpha.5",
+  "version": "0.1.0-alpha.6",
   "changes": {
     "en": [
-      "Isolate browser sessions: changing tokens or signing out aborts old requests and task polling; stale responses and errors cannot cross into a new session.",
-      "Prevent duplicate sign-in attempts and clear node selections, modal state, errors and the token field on sign-out. Node refreshes accept only the newest response.",
-      "Keep the latest selected task details when responses arrive out of order, and cancel task-history reads when leaving the page.",
-      "Add automated API cancellation tests and five-language browser checks for out-of-order task details and sign-out. Browser cancellation does not stop already submitted server tasks."
+      "Add an Agent configuration wizard for hub HTTPS address, cleanup/scan allowlists and optional custom panel directories. Panel discovery never expands cleanup permissions.",
+      "Validate protected cleanup roots, directory counts and hub URLs before enrollment, and snapshot settings for the downloaded credential configuration.",
+      "Add the read-only -check command for local configuration, directory access without symlinks and visible process descriptor access. It does not start services, connect to the hub or create the database, and reports no credentials or hub URLs.",
+      "Add wizard and preflight tests, five-language browser validation, race checks and two-agent smoke coverage. Process checks cannot prove host PID namespace visibility; real VPS validation remains required."
     ],
     "zh-CN": [
-      "隔离浏览器会话：切换令牌或退出会取消旧请求和任务轮询，旧响应与错误不会进入新会话。",
-      "防止重复登录提交；退出时清空节点选择、弹窗、错误和令牌输入；节点刷新仅接收最新响应。",
-      "修复任务详情乱序覆盖，只展示最近选择的任务，离开页面时取消任务记录读取。",
-      "加入 API 取消测试与五语浏览器乱序详情、退出回归；浏览器取消不会停止服务器上已提交的任务。"
+      "加入 Agent 配置向导，可设置管理端 HTTPS 地址、清理及扫描白名单、自定义面板目录；面板识别不会扩大清理权限。",
+      "创建节点前校验受保护清理目录、目录数量和管理端地址，并以提交时的配置快照生成下载文件。",
+      "加入只读 -check 命令，检查本地配置、不跟随符号链接的目录访问及可见进程描述符；不启动服务、不连接管理端、不创建数据库，不输出凭证或管理端地址。",
+      "补充向导与诊断测试、五语浏览器回归、竞态检查和双 Agent 冒烟验证；进程检查不能证明宿主 PID 命名空间可见性，真实 VPS 验证仍需完成。"
     ],
     "zh-TW": [
-      "隔離瀏覽器會話：切換權杖或登出會取消舊請求及任務輪詢，舊回應和錯誤不會進入新會話。",
-      "防止重複登入提交；登出時清空節點選擇、彈窗、錯誤及權杖輸入；節點更新只接收最新回應。",
-      "修復任務詳情亂序覆蓋，只顯示最近選擇的任務，離開頁面時取消任務紀錄讀取。",
-      "加入 API 取消測試及五語瀏覽器亂序詳情、登出回歸；瀏覽器取消不會停止伺服器上已提交的任務。"
+      "加入 Agent 設定精靈，可設定管理端 HTTPS 位址、清理及掃描白名單、自訂面板目錄；面板識別不會擴大清理權限。",
+      "建立節點前驗證受保護清理目錄、目錄數量和管理端位址，並以提交時的設定快照產生下載檔案。",
+      "加入唯讀 -check 命令，檢查本機設定、不跟隨符號連結的目錄存取及可見程序描述符；不啟動服務、不連接管理端、不建立資料庫，不輸出憑證或管理端位址。",
+      "補充精靈與診斷測試、五語瀏覽器回歸、競態檢查和雙 Agent 冒煙驗證；程序檢查無法證明宿主 PID 命名空間可見性，仍需真實 VPS 驗證。"
     ],
     "ja": [
-      "ブラウザーのセッションを分離。トークン変更やログアウトで古いリクエストとタスクの確認を停止し、古い応答やエラーが新しいセッションへ入ることを防ぎます。",
-      "ログインの重複送信を防止。ログアウトでノード選択、ダイアログ、エラー、トークン入力を消去し、ノード更新は最新の応答だけを反映します。",
-      "タスク詳細の応答順による上書きを修正。最後に選択した詳細を表示し、ページ離脱時に履歴の読み取りを停止します。",
-      "APIキャンセルの自動検証と5言語の詳細応答順・ログアウトのブラウザー検証を追加。ブラウザーのキャンセルは送信済みのサーバータスクを停止しません。"
+      "Agent設定ウィザードを追加。ハブHTTPSアドレス、削除・スキャン許可リスト、独自パネルの場所を指定できます。パネル検出は削除権限を拡張しません。",
+      "登録前に保護ディレクトリ、件数、ハブURLを検証し、送信時の設定をダウンロードファイルに保持します。",
+      "読み取り専用の-checkを追加。ローカル設定、シンボリックリンクを使わないディレクトリのアクセス、可視プロセスの記述子を確認します。サービス開始、ハブ接続、DB作成を行わず、認証情報やハブURLも出力しません。",
+      "ウィザードと診断のテスト、5言語ブラウザー検証、競合検査、2 Agentの動作確認を追加。プロセス検査はホストPID名前空間の可視性を証明できず、実VPSの検証が必要です。"
     ],
     "ko": [
-      "브라우저 세션을 분리합니다. 토큰 변경이나 로그아웃 시 이전 요청과 작업 조회를 취소하여 이전 응답과 오류가 새 세션에 들어오지 않도록 합니다.",
-      "중복 로그인 제출을 방지합니다. 로그아웃 시 노드 선택, 대화상자, 오류와 토큰 입력을 지우고 노드 갱신에는 최신 응답만 반영합니다.",
-      "작업 상세 응답 순서로 덮어쓰는 문제를 수정했습니다. 마지막으로 선택한 작업만 표시하고 페이지를 떠날 때 작업 기록 읽기를 취소합니다.",
-      "API 취소 자동 검증과 5개 언어의 상세 응답 순서 및 로그아웃 브라우저 검증을 추가했습니다. 브라우저 취소는 서버에 이미 제출한 작업을 중지하지 않습니다."
+      "Agent 설정 마법사를 추가했습니다. 허브 HTTPS 주소, 정리·스캔 허용 목록과 사용자 지정 패널 경로를 설정합니다. 패널 탐지는 정리 권한을 확대하지 않습니다.",
+      "등록 전에 보호 디렉터리, 디렉터리 수와 허브 URL을 검증하고 제출 시점의 설정으로 다운로드 파일을 생성합니다.",
+      "읽기 전용 -check를 추가했습니다. 로컬 설정, 심볼릭 링크 없는 디렉터리 접근과 보이는 프로세스 설명자를 확인합니다. 서비스 시작, 허브 연결, DB 생성 없이 자격 증명이나 허브 URL도 출력하지 않습니다.",
+      "마법사와 진단 테스트, 5개 언어 브라우저 검증, 경쟁 상태 검사와 두 Agent 동작 검증을 추가했습니다. 프로세스 검사는 호스트 PID 네임스페이스 가시성을 증명하지 못하므로 실제 VPS 검증이 필요합니다."
     ]
   }
 }

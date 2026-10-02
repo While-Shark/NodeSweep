@@ -16,12 +16,9 @@ import (
 )
 
 func Run(ctx context.Context, address, node, token string, e *engine.Engine) error {
-	endpoint, err := pollURL(address)
+	endpoint, err := validatedEndpoint(address, node, token)
 	if err != nil {
 		return err
-	}
-	if node == "" || len(node) > 64 || len(token) < 32 || len(token) > 256 || strings.ContainsAny(token, " \t\r\n") {
-		return errors.New("invalid node credentials")
 	}
 	client := agentClient()
 	sampler := engine.Sampler{}
@@ -90,4 +87,20 @@ func Run(ctx context.Context, address, node, token string, e *engine.Engine) err
 		case <-time.After(5 * time.Second):
 		}
 	}
+}
+
+// ValidateSettings checks connection syntax locally without contacting the hub.
+func ValidateSettings(address, node, token string) error {
+	_, err := validatedEndpoint(address, node, token)
+	return err
+}
+func validatedEndpoint(address, node, token string) (string, error) {
+	endpoint, err := pollURL(address)
+	if err != nil {
+		return "", err
+	}
+	if node == "" || node == "local" || len(node) > 64 || len(token) < 32 || len(token) > 256 || strings.ContainsAny(token, " \t\r\n") {
+		return "", errors.New("invalid node credentials")
+	}
+	return endpoint, nil
 }

@@ -49,6 +49,14 @@ ssh -L 9780:127.0.0.1:9780 root@your-server
 
 ## 加入其他 VPS
 
+加入 Agent 設定精靈，可設定管理端 HTTPS 位址、清理及掃描白名單、自訂面板目錄；面板識別不會擴大清理權限。
+
+```bash
+./nodesweep -config nodesweep-agent.json -check
+```
+
+加入唯讀 -check 命令，檢查本機設定、不跟隨符號連結的目錄存取及可見程序描述符；不啟動服務、不連接管理端、不建立資料庫，不輸出憑證或管理端位址。
+
 在面板新增節點並下載專用 Agent 設定，將 `hub` 改為管理端的 HTTPS 網址，再把對應架構的執行檔與設定上傳到 VPS。檢查本機 `cleanupRoots` 後執行：
 
 ```bash
@@ -78,7 +86,7 @@ Nightly 僅在 `master` 有新提交且 CI 通過後自動更新，供測試使�
 
 ## 安裝、報告與告警
 
-解壓後執行 `sudo bash install.sh --start`，或以 `sudo bash install.sh --download v0.1.0-alpha.5 --start` 校驗並下載指定版本。升級保留設定與標準停機狀態快照，啟動失敗恢復舊二進位檔。`--rollback` 只切換執行檔，不覆蓋目前設定和資料庫；自訂資料路徑需自行備份，舊快照確認後手動清理。
+解壓後執行 `sudo bash install.sh --start`，或以 `sudo bash install.sh --download v0.1.0-alpha.6 --start` 校驗並下載指定版本。升級保留設定與標準停機狀態快照，啟動失敗恢復舊二進位檔。`--rollback` 只切換執行檔，不覆蓋目前設定和資料庫；自訂資料路徑需自行備份，舊快照確認後手動清理。
 
 規則試執行解釋比對與排除原因，不建立可執行預覽。清理報告顯示逐檔結果、配置空間與時間，任務紀錄可查看失敗時的部分結果。
 

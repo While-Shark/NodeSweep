@@ -173,3 +173,16 @@ sudo bash install.sh --rollback
 重新启动管理端后生效。Webhook 为通用 `POST application/json`：包含 `node`、`name`、`path`、`kind`（disk/inode/offline）、`percent`、`resolved` 和 `at`。接收端需处理此格式；不是 Slack/钉钉等平台的专有消息格式。地址只保存在管理端文件，不返回浏览器。仅支持公开 HTTPS 目标，拒绝私网、保留地址和重定向，并在连接时校验解析后的 IP，避免 DNS 重绑定。网络错误只记录通知失败，不展示含密钥的 URL。
 
 通知包含节点名称与路径，请使用你信任的接收端。没有邮件发送、自动升级或自动日志清理。
+
+## Agent 配置向导与本地检查
+
+“添加节点”可以设置管理端 HTTPS 地址、逐行填写清理及扫描白名单、自定义面板安装目录。识别面板不会自动扩展清理权限；请只允许日志目录，不要把整个面板安装目录当作清理范围。宝塔的 panelRoots 填写实际 panel 目录（如 `/www/server/panel`），1Panel 安装位置沿用静态 1pctl 配置识别。自定义目录需在实际 VPS 上确认存在。
+
+```bash
+chmod 600 nodesweep-agent.json
+./nodesweep -config nodesweep-agent.json -check
+```
+
+命令读取受保护配置并输出不含凭证和管理端 URL 的 JSON。检查目录是否能在不跟随符号链接的情况下打开、可见进程描述符是否可读取；任一检查失败返回非零退出码。不启动服务、不连接管理端、不创建数据库、不修改文件；不能与 `-init` 或 `-version` 同时使用。该检查不验证网络连通性、TLS、数据库、Webhook 或清理目录的写入权限，启动和正式预览仍需验证这些条件。
+
+进程检查只覆盖当前可见命名空间，不能证明能看到宿主机所有进程；容器内 Agent 仍不适合清理宿主机日志。SELinux/hidepid、宝塔/1Panel 自定义目录和 arm64 实机验证仍是待办。

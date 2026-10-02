@@ -17,7 +17,6 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"path/filepath"
 	"sync"
 	"syscall"
 	"time"
@@ -49,8 +48,12 @@ func main() {
 func run() error {
 	path := flag.String("config", "config.json", "configuration path")
 	init := flag.Bool("init", false, "write secure standalone configuration")
+	check := flag.Bool("check", false, "validate local configuration and directory access without starting services")
 	showVersion := flag.Bool("version", false, "print build version")
 	flag.Parse()
+	if *check && (*init || *showVersion) {
+		return errors.New("check cannot be combined with init or version")
+	}
 	if *showVersion {
 		fmt.Printf("NodeSweep %s commit=%s built=%s\n", version, commit, builtAt)
 		return nil
@@ -76,27 +79,11 @@ func run() error {
 	if err != nil {
 		return err
 	}
-	if c.Mode != "standalone" && c.Mode != "hub" && c.Mode != "agent" {
-		return errors.New("mode must be standalone, hub or agent")
+	if err := validateConfig(c); err != nil {
+		return err
 	}
-	for _, p := range append(append([]string{}, c.ScanRoots...), c.CleanupRoots...) {
-		if !filepath.IsAbs(p) {
-			return errors.New("allowlist roots must be absolute")
-		}
-	}
-	for _, p := range c.CleanupRoots {
-		p = filepath.Clean(p)
-		if p == "/" || p == "/etc" || p == "/proc" || p == "/sys" || p == "/dev" {
-			return fmt.Errorf("unsafe cleanup root: %s", p)
-		}
-	}
-	if len(c.PanelRoots) > 16 {
-		return errors.New("at most 16 panelRoots allowed")
-	}
-	for _, p := range c.PanelRoots {
-		if !filepath.IsAbs(p) || filepath.Clean(p) == "/" {
-			return errors.New("panelRoots must be absolute panel installation directories")
-		}
+	if *check {
+		return preflight(c, os.Stdout)
 	}
 
 	signalCtx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)

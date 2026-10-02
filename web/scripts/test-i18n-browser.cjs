@@ -414,6 +414,39 @@ const server = http.createServer((req, res) => {
         .click();
       await page.locator(".modal input").first().fill("自定义 VPS");
       await page
+        .getByLabel(label(locale, "管理端 HTTPS 地址"), { exact: true })
+        .fill("http://remote.example");
+      assert.ok(
+        await page
+          .getByRole("button", {
+            name: label(locale, "生成节点配置"),
+            exact: true,
+          })
+          .isDisabled(),
+      );
+      await page
+        .getByLabel(label(locale, "管理端 HTTPS 地址"), { exact: true })
+        .fill("https://hub.example/nodesweep");
+      await page
+        .getByLabel(label(locale, "允许清理的目录"), { exact: true })
+        .fill("//etc//");
+      assert.ok(
+        await page
+          .getByRole("button", {
+            name: label(locale, "生成节点配置"),
+            exact: true,
+          })
+          .isDisabled(),
+      );
+      await page
+        .getByLabel(label(locale, "允许清理的目录"), { exact: true })
+        .fill("/var/log");
+      await page
+        .getByLabel(label(locale, "自定义面板安装目录（可选）"), {
+          exact: true,
+        })
+        .fill("/www/custom");
+      await page
         .getByRole("button", {
           name: label(locale, "生成节点配置"),
           exact: true,
@@ -424,6 +457,8 @@ const server = http.createServer((req, res) => {
         await page.locator(".modal pre").first().innerText(),
       );
       assert.equal(config.mode, "agent");
+      assert.equal(config.hub, "https://hub.example/nodesweep");
+      assert.deepEqual(config.panelRoots, ["/www/custom"]);
       assert.deepEqual(config.cleanupRoots, ["/var/log"]);
       await page
         .getByRole("button", { name: label(locale, "完成"), exact: true })

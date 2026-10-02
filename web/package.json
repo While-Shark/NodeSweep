@@ -8,7 +8,7 @@
     "build": "vue-tsc --noEmit && vite build",
     "format": "prettier --write src scripts vite.config.ts",
     "format:check": "prettier --check src scripts vite.config.ts",
-    "test": "node scripts/test-i18n.mjs && node scripts/test-api.mjs",
+    "test": "node scripts/test-i18n.mjs && node scripts/test-api.mjs && node scripts/test-agent-config.mjs",
     "test:browser": "node scripts/test-i18n-browser.cjs"
   },
   "dependencies": {

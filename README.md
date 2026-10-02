@@ -50,6 +50,14 @@ Open `http://127.0.0.1:9780`. For public/multi-node access, use an existing HTTP
 
 ## Multiple nodes
 
+Add an Agent configuration wizard for hub HTTPS address, cleanup/scan allowlists and optional custom panel directories. Panel discovery never expands cleanup permissions.
+
+```bash
+./nodesweep -config nodesweep-agent.json -check
+```
+
+Add the read-only -check command for local configuration, directory access without symlinks and visible process descriptor access. It does not start services, connect to the hub or create the database, and reports no credentials or hub URLs.
+
 1. Add a node in the dashboard and download its independent agent configuration.
 2. Set `hub` to the central dashboard's HTTPS URL.
 3. Upload the architecture-appropriate binary and configuration to the VPS.
@@ -88,7 +96,7 @@ Release descriptions include reviewed change summaries in all five languages. Up
 
 ## Installation, reports and alerts
 
-Run `sudo bash install.sh --start` from an extracted bundle. To download a checked build, use `sudo bash install.sh --download v0.1.0-alpha.5 --start` (or `nightly` for testing). Upgrades preserve configuration, snapshot standard stopped state and restore the old binary if activation fails. `sudo bash install.sh --rollback` swaps binaries without restoring old database/configuration snapshots. Custom data paths require an operator backup; clean up obsolete snapshots after verification.
+Run `sudo bash install.sh --start` from an extracted bundle. To download a checked build, use `sudo bash install.sh --download v0.1.0-alpha.6 --start` (or `nightly` for testing). Upgrades preserve configuration, snapshot standard stopped state and restore the old binary if activation fails. `sudo bash install.sh --rollback` swaps binaries without restoring old database/configuration snapshots. Custom data paths require an operator backup; clean up obsolete snapshots after verification.
 
 Rule dry runs explain matching/exclusion decisions without creating an executable preview. Cleanup reports show file outcomes, allocated space and execution times, including partial failed tasks in task history. Allocated space is not net free-space growth.
 

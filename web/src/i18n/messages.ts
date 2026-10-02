@@ -1028,5 +1028,61 @@ export const messages = {
   ],
   未提交: ["Not submitted", "未送信", "제출되지 않음", "未提交"],
   "登录中…": ["Signing in…", "ログイン中…", "로그인 중…", "登入中…"],
+  "管理端 HTTPS 地址": [
+    "Hub HTTPS address",
+    "ハブのHTTPSアドレス",
+    "허브 HTTPS 주소",
+    "管理端 HTTPS 位址",
+  ],
+  允许清理的目录: [
+    "Allowed cleanup directories",
+    "削除を許可するディレクトリ",
+    "정리 허용 디렉터리",
+    "允許清理的目錄",
+  ],
+  允许扫描的目录: [
+    "Allowed scan directories",
+    "スキャンを許可するディレクトリ",
+    "스캔 허용 디렉터리",
+    "允許掃描的目錄",
+  ],
+  "自定义面板安装目录（可选）": [
+    "Custom panel installation directories (optional)",
+    "パネルの独自インストール先（任意）",
+    "사용자 지정 패널 설치 디렉터리(선택)",
+    "自訂面板安裝目錄（可選）",
+  ],
+  "每行一个目录。面板安装目录仅用于识别，不会自动扩大清理权限；请只允许日志目录。":
+    [
+      "One directory per line. Panel directories are for discovery only and do not extend cleanup permissions; allow only log directories.",
+      "1行に1ディレクトリ。パネルの場所は検出専用で、削除権限は拡張しません。ログディレクトリのみ許可してください。",
+      "한 줄에 하나의 디렉터리. 패널 경로는 탐지용이며 정리 권한을 확대하지 않습니다. 로그 디렉터리만 허용하세요.",
+      "每行一個目錄。面板安装目錄只用於識別，不會擴大清理權限；請只允許日誌目錄。",
+    ],
+  "管理端地址需要 HTTPS，且不能包含凭证、查询参数或编码路径。": [
+    "Use HTTPS for the hub address, without credentials, query parameters or encoded paths.",
+    "ハブにはHTTPSを使用し、認証情報・クエリ・エンコードされたパスを含めないでください。",
+    "허브 주소는 HTTPS를 사용하고 자격 증명, 쿼리 또는 인코딩된 경로를 포함하지 않아야 합니다.",
+    "管理端位址需使用 HTTPS，且不得包含憑證、查詢參數或編碼路徑。",
+  ],
+  "目录必须是绝对路径，每行一个；扫描及清理最多 64 项，面板最多 16 项。": [
+    "Use absolute directories, one per line; at most 64 scan/cleanup entries and 16 panel entries.",
+    "絶対パスを1行ずつ入力。スキャン・削除は最大64件、パネルは最大16件です。",
+    "절대 경로를 한 줄씩 입력하세요. 스캔·정리 최대 64개, 패널 최대 16개입니다.",
+    "目錄須為絕對路徑，每行一個；掃描及清理最多 64 項，面板最多 16 項。",
+  ],
+  "不能将系统根目录或受保护目录设为清理范围。": [
+    "The filesystem root and protected directories cannot be cleanup roots.",
+    "システムルートや保護ディレクトリを削除範囲にはできません。",
+    "파일 시스템 루트와 보호 디렉터리는 정리 범위로 지정할 수 없습니다.",
+    "系統根目錄與受保護目錄不得設為清理範圍。",
+  ],
+  "宝塔填写 panel 目录（例如 /www/server/panel）；1Panel 安装位置从 1pctl 静态配置识别。":
+    [
+      "For BaoTa, enter the panel directory (for example /www/server/panel). 1Panel locations are detected from static 1pctl configuration.",
+      "宝塔はpanelディレクトリ（例：/www/server/panel）を指定します。1Panelの場所は1pctlの静的設定から検出します。",
+      "BaoTa는 panel 디렉터리(예: /www/server/panel)를 입력합니다. 1Panel 위치는 1pctl 정적 설정에서 탐지합니다.",
+      "寶塔填寫 panel 目錄（例如 /www/server/panel）；1Panel 安裝位置從 1pctl 靜態設定識別。",
+    ],
 } as const;
 export type MessageKey = keyof typeof messages;
