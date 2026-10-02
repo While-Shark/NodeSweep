@@ -6,8 +6,6 @@ on:
     branches: [master]
   push:
     tags: ['v*']
-  schedule:
-    - cron: '17 2 * * *'
   workflow_dispatch:
 permissions:
   contents: read

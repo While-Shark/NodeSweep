@@ -17,6 +17,8 @@ for arch in amd64 arm64; do
   cp install.sh README*.md LICENSE VERSION SECURITY.md "$folder/"
   cp deploy/nodesweep.service "$folder/deploy/"
   cp docs/*.md "$folder/docs/"
+  cp docs/release-notes.json "$folder/docs/"
+  python3 scripts/release_notes.py > "$folder/docs/release-notes.md"
   cp -R docs/images "$folder/docs/"
   VERSION_VALUE="$version" COMMIT_VALUE="$commit" BUILD_TIME="$built_at" python3 - "$folder/build-info.json" <<'PY'
 import json, os, sys

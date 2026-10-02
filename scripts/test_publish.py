@@ -42,7 +42,7 @@ class PublishFlowTests(unittest.TestCase):
                 return {}
             if '/releases/tags/' in path:
                 if published and path.endswith('/v0.1.0-alpha.1'):
-                    return {'id': 1, 'draft': False}
+                    return {'id': 1, 'draft': False, 'body': 'Commit: original-build'}
                 return None
             if method == 'POST' and path.endswith('/releases'):
                 return {'id': 2 if body['tag_name'] == 'nightly' else 1, 'draft': True}
@@ -58,6 +58,7 @@ class PublishFlowTests(unittest.TestCase):
                     Path('release', name).touch()
                 with patch.dict(os.environ, {'GITHUB_REPOSITORY': 'While-Shark/NodeSweep',
                                              'SOURCE_SHA': sha, 'GITHUB_REF_TYPE': 'branch'}), \
+                     patch.object(publish, 'render_notes', return_value='## English\n\n- Checked fixture update\n'), \
                      patch.object(publish, 'api', side_effect=fake_api), \
                      patch.object(publish.subprocess, 'run', side_effect=lambda args, **kwargs: commands.append(args)):
                     publish.main()
@@ -77,6 +78,10 @@ class PublishFlowTests(unittest.TestCase):
     def test_existing_version_is_not_uploaded_again(self):
         calls, commands = self.run_flow(published=True)
         self.assertEqual([c[3] for c in commands if c[:3] == ['gh', 'release', 'upload']], ['nightly'])
+        note_updates = [body for path, method, body in calls if path.endswith('/releases/1') and method == 'PATCH']
+        self.assertEqual(len(note_updates), 1)
+        self.assertTrue(note_updates[0]['body'].startswith('Commit: original-build'))
+        self.assertIn('## English', note_updates[0]['body'])
 
     def test_stale_source_does_not_publish(self):
         calls, commands = self.run_flow(stale=True)

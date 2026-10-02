@@ -72,11 +72,13 @@ English, Japanese, Korean, Simplified Chinese and Traditional Chinese can be swi
 
 ## Nightly and version releases
 
-- **Nightly:** rolling prerelease, updated after successful `master` CI and daily at 02:17 UTC. Use for testing.
+- **Nightly:** rolling prerelease, updated after a new commit to `master` passes CI. Use for testing.
 - **Version Release:** automatically created from `VERSION` after checks pass. Published versions are never overwritten; bump `VERSION` for a new release. A matching `v*` tag can also trigger publishing. Prerelease versions remain marked as prereleases.
 - Both channels provide Linux amd64/arm64 archives, `SHA256SUMS`, multilingual READMEs and build metadata. `./nodesweep -version` prints the version, commit and build time.
 
 CI checks frontend formatting/tests, Go race tests/vet, standalone/multi-node smoke tests, dependency vulnerabilities and both architectures. Fork pull requests cannot start the privileged publisher. Release builds use read-only repository permissions; only the final publishing job has write access.
+
+Release descriptions include reviewed change summaries in all five languages. Update `docs/release-notes.json` alongside changes; its version must match `VERSION`. The publisher renders these notes for release pages and includes them in newly built archives.
 
 ## Build and verify
 

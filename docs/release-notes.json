@@ -1,0 +1,50 @@
+{
+  "version": "0.1.0-alpha.1",
+  "changes": {
+    "en": [
+      "Initial Alpha: standalone, central hub and outbound agents in one binary; live VPS metrics, disk treemap drilldown and archived-log cleanup with previews.",
+      "Built-in Linux/Nginx, BaoTa and 1Panel rules, installation/log path discovery and cleanup-plan JSON import/export.",
+      "Five-language UI and documentation: English, Simplified Chinese, Traditional Chinese, Japanese and Korean; English is the default README.",
+      "Security hardening: pinned directory descriptors, cross-node task isolation, strict agent responses, HTTPS without redirects, request budgets and protected configuration/database files. Updated the affected dependency.",
+      "Automatic Nightly publication only after a new master commit passes CI. Daily scheduled builds have been removed. Version releases are generated from VERSION and published versions are preserved.",
+      "Linux amd64/arm64 archives include SHA256SUMS, build metadata and multilingual update notes. Fixed mobile overflow caused by long node names.",
+      "Alpha limitation: validate on a test VPS before production use; cleanup permanently deletes eligible archives. No automatic VPS upgrade or scheduled cleanup."
+    ],
+    "zh-CN": [
+      "首个 Alpha：同一二进制支持单机、中央管理端和主动连接的 Agent；支持 VPS 实时状态、可下钻磁盘树图和预览后清理归档日志。",
+      "加入 Linux/Nginx、宝塔和 1Panel 内置规则、安装及日志路径识别，以及清理方案 JSON 导入导出。",
+      "界面及文档支持英文、简体中文、繁体中文、日文和韩文，默认 README 改为英文。",
+      "安全加固：固定目录文件描述符、跨节点任务隔离、严格校验 Agent 响应、HTTPS 且拒绝重定向、请求限额，以及配置和数据库文件权限保护；升级受影响依赖。",
+      "Nightly 仅在 master 有新提交且 CI 通过后自动发布，移除每日定时构建。版本 Release 由 VERSION 驱动，已发布版本不覆盖。",
+      "提供 Linux amd64/arm64 压缩包、SHA256SUMS、构建信息及多语言更新说明；修复长节点名导致的手机页面溢出。",
+      "Alpha 限制：生产使用前请先在测试 VPS 验证，清理会永久删除符合规则的归档；不会自动升级 VPS 或定时清理日志。"
+    ],
+    "zh-TW": [
+      "首個 Alpha：同一執行檔支援單機、中央管理端與主動連線的 Agent；提供 VPS 即時狀態、可逐層展開的磁碟樹圖及預覽後清理封存日誌。",
+      "加入 Linux/Nginx、寶塔及 1Panel 內建規則、安裝與日誌路徑辨識，以及清理方案 JSON 匯入匯出。",
+      "介面與文件支援英文、簡體中文、繁體中文、日文及韓文，預設 README 改為英文。",
+      "安全強化：固定目錄檔案描述元、跨節點任務隔離、嚴格驗證 Agent 回應、HTTPS 且拒絕重新導向、請求限制，以及設定與資料庫檔案權限保護；升級受影響相依套件。",
+      "Nightly 僅在 master 有新提交且 CI 通過後自動發布，移除每日排程建置。版本 Release 由 VERSION 驅動，已發布版本不會覆寫。",
+      "提供 Linux amd64/arm64 壓縮檔、SHA256SUMS、建置資訊及多語言更新說明；修正長節點名稱造成的手機頁面溢出。",
+      "Alpha 限制：正式使用前請先在測試 VPS 驗證，清理會永久刪除符合規則的封存檔；不會自動升級 VPS 或排程清理日誌。"
+    ],
+    "ja": [
+      "初期 Alpha：単一バイナリで単体・中央ハブ・外向き接続の Agent に対応。VPS のリアルタイム指標、階層ツリーマップ、プレビュー後のログアーカイブ削除を提供。",
+      "Linux/Nginx、宝塔、1Panel の組み込みルール、設置・ログパスの検出、整理プランの JSON インポート／エクスポートを追加。",
+      "UI と文書は英語、簡体字中国語、繁体字中国語、日本語、韓国語に対応。標準 README を英語に変更。",
+      "安全性を強化：ディレクトリ記述子の固定、ノード間のタスク分離、厳密な Agent 応答検証、リダイレクトを拒否する HTTPS、リクエスト制限、設定・データベースの権限保護。影響を受ける依存関係を更新。",
+      "Nightly は master の新しいコミットが CI を通過した後にのみ自動公開。毎日の定期ビルドを廃止。バージョン Release は VERSION に基づき作成し、公開済みバージョンを上書きしません。",
+      "Linux amd64／arm64 アーカイブ、SHA256SUMS、ビルド情報、多言語の更新説明を提供。長いノード名によるモバイル画面のはみ出しを修正。",
+      "Alpha の制限：本番利用前にテスト VPS で検証してください。対象アーカイブは永久削除されます。VPS の自動更新や定期ログ削除は行いません。"
+    ],
+    "ko": [
+      "첫 Alpha: 하나의 바이너리로 단독 모드, 중앙 허브와 외부로 연결하는 Agent를 지원합니다. VPS 실시간 지표, 디렉터리 트리맵 탐색과 미리보기 후 로그 아카이브 정리를 제공합니다.",
+      "Linux/Nginx, 宝塔, 1Panel 기본 규칙, 설치·로그 경로 탐지와 정리 계획 JSON 가져오기/내보내기를 추가했습니다.",
+      "UI와 문서는 영어, 중국어 간체·번체, 일본어와 한국어를 지원하며 기본 README를 영어로 변경했습니다.",
+      "보안을 강화했습니다: 디렉터리 디스크립터 고정, 노드 간 작업 격리, 엄격한 Agent 응답 검증, 리디렉션을 거부하는 HTTPS, 요청 제한과 설정·데이터베이스 파일 권한 보호. 영향을 받는 의존성을 업데이트했습니다.",
+      "Nightly는 master의 새 커밋이 CI를 통과한 후에만 자동 게시합니다. 매일 예약 빌드는 제거했습니다. 버전 Release는 VERSION으로 생성하며 게시된 버전을 덮어쓰지 않습니다.",
+      "Linux amd64/arm64 아카이브, SHA256SUMS, 빌드 정보와 다국어 업데이트 설명을 제공합니다. 긴 노드 이름으로 인한 모바일 화면 넘침을 수정했습니다.",
+      "Alpha 제한: 운영 환경 사용 전에 테스트 VPS에서 검증하세요. 대상 아카이브는 영구 삭제됩니다. VPS 자동 업그레이드나 예약 로그 정리는 실행하지 않습니다."
+    ]
+  }
+}

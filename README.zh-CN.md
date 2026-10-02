@@ -120,9 +120,11 @@ v0.1 使用保守规则：普通文件、单硬链接、未被打开、超过保
 
 ## 自动发布
 
-Nightly 在 master 的 CI 通过后和每日 UTC 02:17 自动更新，供测试使用。版本 Release 根据 `VERSION` 自动创建；修改版本号后产生新版本，已发布版本不覆盖。也支持匹配 `VERSION` 的 v* 标签。两个渠道提供 Linux amd64/arm64 压缩包、SHA256SUMS、多语言文档和构建信息。运行 `./nodesweep -version` 查看版本、提交和构建时间。
+Nightly 仅在 master 有新提交且 CI 通过后自动更新，供测试使用。版本 Release 根据 `VERSION` 自动创建；修改版本号后产生新版本，已发布版本不覆盖。也支持匹配 `VERSION` 的 v* 标签。两个渠道提供 Linux amd64/arm64 压缩包、SHA256SUMS、多语言文档和构建信息。运行 `./nodesweep -version` 查看版本、提交和构建时间。
 
 配置必须是权限 0600 的普通单硬链接文件。目录逐层固定文件描述符并拒绝链接；需要 `/proc/self/fd` 可用。安全审计和剩余边界见 [security.md](docs/security.md)。
+
+发布说明会包含五种语言的更新摘要。修改内容时同步维护 `docs/release-notes.json`，其中版本须与 `VERSION` 一致；发布时自动生成 Release 页面说明并放入新构建的压缩包。
 
 ## 开发与验证
 

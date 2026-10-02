@@ -6,6 +6,7 @@ from pathlib import Path
 import re
 import subprocess
 import sys
+from release_notes import LANGUAGES, render_notes
 
 VERSION_RE = re.compile(r"[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z]+(?:\.[0-9A-Za-z]+)*)?\Z")
 
@@ -43,6 +44,7 @@ def main():
     if not re.fullmatch(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+", repo) or not re.fullmatch(r"[0-9a-f]{40}", sha):
         raise ValueError("Invalid repository or commit")
     version = validate_version(Path("VERSION").read_text().strip())
+    change_notes = render_notes(version)
     tag = "v" + version
     is_tag = os.environ.get("GITHUB_REF_TYPE") == "tag"
     if is_tag and os.environ.get("GITHUB_REF_NAME") != tag:
@@ -61,6 +63,7 @@ def main():
                   "Run `./nodesweep -version` to inspect build metadata.\n\n"
                   "Validate on a test VPS before use. Cleanup permanently removes archived logs "
                   "inside local allowlists; always review the preview. See README and SECURITY.md.\n")
+    base_notes += "\n" + change_notes
     existing = api(prefix + "/releases/tags/" + tag, missing=True)
     action = release_action(existing)
     if action == "create":
@@ -87,7 +90,12 @@ def main():
         subprocess.run(["gh", "release", "upload", tag, *assets, "--clobber", "--repo", repo], check=True)
         api(prefix + "/releases/" + str(existing["id"]), "PATCH", dict(draft=False))
     else:
-        print(f"Keeping published {tag} unchanged.")
+        print(f"Keeping published {tag} assets unchanged.")
+        # Backfill missing translations without changing the original build metadata or assets.
+        original_body = existing.get("body") or ""
+        if not all("## " + label + "\n" in original_body for _, label in LANGUAGES):
+            api(prefix + "/releases/" + str(existing["id"]), "PATCH",
+                dict(body=original_body.rstrip() + "\n\n" + change_notes))
     if is_tag:
         return
     # Only the nightly tag is deliberately movable. No version release is overwritten.
@@ -97,7 +105,7 @@ def main():
     else:
         api(prefix + "/git/refs", "POST", dict(ref="refs/tags/nightly", sha=sha))
     nightly = api(prefix + "/releases/tags/nightly", missing=True)
-    notes = "Rolling development build. Updated after successful CI and daily at 02:17 UTC.\n\n" + base_notes
+    notes = "Rolling development build. Updated when a new master commit passes CI; no scheduled rebuilds.\n\n" + base_notes
     if nightly is None:
         nightly = api(prefix + "/releases", "POST", dict(tag_name="nightly", name="NodeSweep Nightly",
                       body=notes, draft=True, prerelease=True, make_latest="false"))
