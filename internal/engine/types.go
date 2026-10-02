@@ -18,17 +18,40 @@ type Candidate struct {
 	Inode    uint64 `json:"inode"`
 	Device   uint64 `json:"device"`
 }
+type Decision struct {
+	Path    string `json:"path"`
+	Reason  string `json:"reason"`
+	Pattern string `json:"pattern,omitempty"`
+}
+type Review struct {
+	Counts   map[string]int `json:"counts"`
+	Examples []Decision     `json:"examples"`
+}
 type Plan struct {
+	Review  Review      `json:"review"`
 	ID      string      `json:"id"`
 	Rule    Rule        `json:"rule"`
 	Created time.Time   `json:"created"`
 	Files   []Candidate `json:"files"`
 	Bytes   int64       `json:"bytes"`
 }
+type CleanupItem struct {
+	Path   string `json:"path"`
+	Status string `json:"status"`
+	Reason string `json:"reason,omitempty"`
+	Bytes  int64  `json:"bytes"`
+}
 type CleanupResult struct {
-	Deleted int      `json:"deleted"`
-	Bytes   int64    `json:"bytes"`
-	Skipped []string `json:"skipped"`
+	Root         string        `json:"root"`
+	RuleName     string        `json:"ruleName"`
+	Items        []CleanupItem `json:"items"`
+	Planned      int           `json:"planned"`
+	PlannedBytes int64         `json:"plannedBytes"`
+	Started      time.Time     `json:"started"`
+	Finished     time.Time     `json:"finished"`
+	Deleted      int           `json:"deleted"`
+	Bytes        int64         `json:"bytes"`
+	Skipped      []string      `json:"skipped"`
 }
 type Entry struct {
 	Name      string   `json:"name"`

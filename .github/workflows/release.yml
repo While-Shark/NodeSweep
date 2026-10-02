@@ -50,6 +50,7 @@ jobs:
           test -z "$(gofmt -l cmd internal web/embed.go)"
           go run golang.org/x/vuln/cmd/govulncheck@v1.8.0 ./...
           python3 -m unittest discover -s scripts -p 'test_*.py'
+      - run: sudo python3 -m unittest discover -s scripts -p test_install.py
       - name: Package Linux amd64 and arm64
         run: bash scripts/package.sh
       - name: Smoke test packaged binary

@@ -45,7 +45,24 @@ export interface Scan {
   truncated: boolean;
   at: string;
 }
+export interface Review {
+  counts: Record<string, number>;
+  examples: { path: string; reason: string; pattern?: string }[];
+}
+export interface CleanupResult {
+  root?: string;
+  ruleName?: string;
+  deleted: number;
+  bytes: number;
+  skipped: string[];
+  planned?: number;
+  plannedBytes?: number;
+  started?: string;
+  finished?: string;
+  items?: { path: string; status: string; reason?: string; bytes: number }[];
+}
 export interface Plan {
+  review?: Review;
   id: string;
   rule: Rule;
   created: string;
@@ -59,6 +76,7 @@ export interface Task {
   status: string;
   error?: string;
   created: string;
+  result?: unknown;
 }
 let token = "";
 export function setToken(value: string) {

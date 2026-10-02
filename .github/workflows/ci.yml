@@ -36,3 +36,4 @@ jobs:
           npm --prefix web audit --audit-level=low
           go run golang.org/x/vuln/cmd/govulncheck@v1.8.0 ./...
       - run: python3 -m unittest discover -s scripts -p 'test_*.py'
+      - run: sudo python3 -m unittest discover -s scripts -p test_install.py

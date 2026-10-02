@@ -70,6 +70,13 @@ const server = http.createServer((req, res) => {
       };
       const tasks = new Map();
       let executions = 0;
+      let settings = {
+        enabled: false,
+        diskPercent: 85,
+        inodePercent: 85,
+        offlineSeconds: 60,
+        cooldownSeconds: 1800,
+      };
       const node = {
         id: "local",
         name: "我的服务器 <img src=x onerror=window.__xss=1>",
@@ -115,6 +122,28 @@ const server = http.createServer((req, res) => {
                 }
               : [node],
           );
+        if (endpoint === "alerts") {
+          if (request.method() === "PUT") {
+            settings = body;
+            return send({ ok: true });
+          }
+          return send({
+            settings,
+            webhookConfigured: false,
+            events: [
+              {
+                id: 1,
+                name: "我的服务器",
+                path: "/",
+                kind: "disk",
+                percent: 91.2,
+                resolved: false,
+                at: new Date().toISOString(),
+                delivery: "not_configured",
+              },
+            ],
+          });
+        }
         if (endpoint === "rules") return send([rule]);
         if (endpoint === "rules/export")
           return send({
@@ -134,17 +163,29 @@ const server = http.createServer((req, res) => {
                 note: "仅处理过期归档；清理前须在节点白名单允许该目录",
               },
             ];
-          if (body.request.kind === "preview")
+          if (["preview", "trial"].includes(body.request.kind))
             result = {
               id: "p1",
               rule,
               created: new Date().toISOString(),
               bytes: 4096,
               files: [{ path: "app.log.1", size: 4096 }],
+              review: {
+                counts: { eligible: 1, active_or_not_archive: 1 },
+                examples: [
+                  { path: "app.log.1", reason: "eligible", pattern: "*.log.*" },
+                  { path: "active.log", reason: "active_or_not_archive" },
+                ],
+              },
             };
           if (body.request.kind === "execute") {
             executions++;
-            result = { deleted: 1, bytes: 4096, skipped: [] };
+            result = {
+              deleted: 1,
+              bytes: 4096,
+              skipped: [],
+              items: [{ path: "app.log.1", status: "deleted", bytes: 4096 }],
+            };
           }
           if (body.request.kind === "scan")
             result = {
@@ -244,6 +285,17 @@ const server = http.createServer((req, res) => {
         (await page.locator(".rule-row").innerText()).includes("我的日志"),
       );
       await page
+        .getByRole("button", { name: label(locale, "规则试运行"), exact: true })
+        .click();
+      await page.locator(".review-details").first().waitFor();
+      await page.locator(".review-details summary").first().click();
+      assert.ok(
+        (await page.locator("main").innerText()).includes(
+          label(locale, "活跃日志或非归档文件"),
+        ),
+      );
+      assert.equal(executions, 0);
+      await page
         .getByRole("button", { name: label(locale, "预览清理"), exact: true })
         .click();
       await page.locator(".preview").waitFor();
@@ -273,6 +325,12 @@ const server = http.createServer((req, res) => {
       await execute.click();
       await page.locator(".success").waitFor();
       assert.equal(executions, 1);
+      await page.locator(".cleanup-report").waitFor();
+      assert.ok(
+        (await page.locator(".cleanup-report").innerText()).includes(
+          "app.log.1",
+        ),
+      );
       assert.ok(
         !(await page.locator(".success").innerText()).includes("{deleted}"),
       );
@@ -326,9 +384,21 @@ const server = http.createServer((req, res) => {
       await page
         .getByRole("button", { name: label(locale, "完成"), exact: true })
         .click();
+      await page.locator("aside nav button").nth(4).click();
+      await page.locator(".form-grid").waitFor();
+      await page.locator("form input[type=checkbox]").check();
+      await page
+        .getByRole("button", {
+          name: label(locale, "保存告警设置"),
+          exact: true,
+        })
+        .click();
+      await page.locator(".success").waitFor();
+      assert.equal(settings.enabled, true);
+      assert.ok((await page.locator("main").innerText()).includes("91.2%"));
       for (const width of [390, 360]) {
         await page.setViewportSize({ width, height: 844 });
-        for (let i = 0; i < 4; i++) {
+        for (let i = 0; i < 5; i++) {
           await page.locator("aside nav button").nth(i).click();
           const overflow = await page.evaluate(
             () => document.documentElement.scrollWidth > innerWidth + 1,
@@ -345,7 +415,7 @@ const server = http.createServer((req, res) => {
       console.log(
         "PASS browser: " +
           locale +
-          " login, scan, discovery, cleanup confirmation, export, enrollment and mobile layouts",
+          " login, scan, dry run, cleanup report, alerts, export, enrollment and mobile layouts",
       );
     }
     const blocked = await browser.newContext({ locale: "ko-KR" });

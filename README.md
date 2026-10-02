@@ -80,6 +80,15 @@ CI checks frontend formatting/tests, Go race tests/vet, standalone/multi-node sm
 
 Release descriptions include reviewed change summaries in all five languages. Update `docs/release-notes.json` alongside changes; its version must match `VERSION`. The publisher renders these notes for release pages and includes them in newly built archives.
 
+## Installation, reports and alerts
+
+Run `sudo bash install.sh --start` from an extracted bundle. To download a checked build, use `sudo bash install.sh --download v0.1.0-alpha.2 --start` (or `nightly` for testing). Upgrades preserve configuration, snapshot standard stopped state and restore the old binary if activation fails. `sudo bash install.sh --rollback` swaps binaries without restoring old database/configuration snapshots. Custom data paths require an operator backup; clean up obsolete snapshots after verification.
+
+Rule dry runs explain matching/exclusion decisions without creating an executable preview. Cleanup reports show file outcomes, allocated space and execution times, including partial failed tasks in task history. Allocated space is not net free-space growth.
+
+Optional alerts cover disk/inode thresholds and offline nodes, with cooldowns, recovery events and the latest 100 records. Enable them in the dashboard. For generic JSON notifications, add `webhookURL` to the hub's protected config and restart it; only public HTTPS destinations are supported. The URL is never returned to the browser. Upgrade hub and agents together. See [deployment details](docs/deployment.md).
+
+
 ## Build and verify
 
 Use a supported, patched Go release (CI uses Go 1.27.x), Node.js 22.18+ or 24+, and Python 3 for smoke/publishing checks. Runtime requires only the binary; no Node.js, external database, Redis or queue.

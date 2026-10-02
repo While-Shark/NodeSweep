@@ -7,6 +7,7 @@ import Overview from "./components/Overview.vue";
 import DiskExplorer from "./components/DiskExplorer.vue";
 import RulesPanel from "./components/RulesPanel.vue";
 import EnrollNode from "./components/EnrollNode.vue";
+import AlertsPanel from "./components/AlertsPanel.vue";
 import TaskHistory from "./components/TaskHistory.vue";
 const logged = ref(false);
 const password = ref("");
@@ -99,7 +100,12 @@ onUnmounted(() => clearInterval(timer));
         ><button :class="{ active: page === 'rules' }" @click="page = 'rules'">
           ♧　{{ t("清理方案") }}</button
         ><button :class="{ active: page === 'tasks' }" @click="page = 'tasks'">
-          ≡　{{ t("任务记录") }}
+          ≡　{{ t("任务记录") }}</button
+        ><button
+          :class="{ active: page === 'alerts' }"
+          @click="page = 'alerts'"
+        >
+          ⚑　{{ t("磁盘告警") }}
         </button>
       </nav>
       <div class="sidebar-bottom">
@@ -122,7 +128,9 @@ onUnmounted(() => clearInterval(timer));
                   ? t("磁盘分析")
                   : page === "rules"
                     ? t("清理方案")
-                    : t("任务记录")
+                    : page === "alerts"
+                      ? t("磁盘告警")
+                      : t("任务记录")
             }}
           </h1>
         </div>
@@ -163,7 +171,9 @@ onUnmounted(() => clearInterval(timer));
         :key="'rules' + current.id"
         :node="current"
       />
-      <TaskHistory v-else-if="page === 'tasks'" />
+      <TaskHistory v-else-if="page === 'tasks'" /><AlertsPanel
+        v-else-if="page === 'alerts'"
+      />
       <div v-else class="card empty">
         {{ t("先添加一台服务器，开始管理空间。") }}
       </div>

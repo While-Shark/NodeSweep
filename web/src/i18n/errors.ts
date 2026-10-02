@@ -1,6 +1,7 @@
 import type { MessageKey } from "./messages";
 // Known API diagnostics; unknown details remain available verbatim.
 export const errorKeys: Record<string, MessageKey> = {
+  "invalid alert thresholds": "告警阈值无效",
   "internal server error": "服务器内部错误，请查看服务端日志",
   "invalid preview identifier": "预览标识无效，请重新预览",
   "node poll rate exceeded": "节点请求过于频繁，请稍后重试",

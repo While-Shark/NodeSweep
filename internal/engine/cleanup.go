@@ -49,7 +49,16 @@ func openFiles() (map[[2]uint64]bool, error) {
 	return out, nil
 }
 func (e *Engine) preview(ctx context.Context, r Rule) (Plan, error) {
-	plan := Plan{ID: ID(), Rule: r, Created: time.Now(), Files: []Candidate{}}
+	return e.review(ctx, r, true)
+}
+func (e *Engine) review(ctx context.Context, r Rule, save bool) (Plan, error) {
+	plan := Plan{ID: ID(), Rule: r, Created: time.Now(), Files: []Candidate{}, Review: Review{Counts: map[string]int{}, Examples: []Decision{}}}
+	record := func(path, reason, pattern string) {
+		plan.Review.Counts[reason]++
+		if len(plan.Review.Examples) < 40 {
+			plan.Review.Examples = append(plan.Review.Examples, Decision{Path: path, Reason: reason, Pattern: pattern})
+		}
+	}
 	if err := ValidateRule(r); err != nil {
 		return plan, err
 	}
@@ -93,9 +102,11 @@ func (e *Engine) preview(ctx context.Context, r Rule) (Plan, error) {
 			return nil
 		}
 		if d.Type()&os.ModeSymlink != 0 {
+			record(rel, "symlink", "")
 			return nil
 		}
 		if strings.HasPrefix(d.Name(), ".nodesweep-") || match(d.Name(), r.Excludes) {
+			record(rel, "excluded", "")
 			if d.IsDir() {
 				return fs.SkipDir
 			}
@@ -106,22 +117,52 @@ func (e *Engine) preview(ctx context.Context, r Rule) (Plan, error) {
 			return err
 		}
 		if i.Mode()&os.ModeSymlink != 0 {
+			record(rel, "symlink", "")
 			return nil
 		}
 		st := i.Sys().(*syscall.Stat_t)
 		if st.Dev != dev {
+			record(rel, "mount", "")
 			if d.IsDir() {
 				return fs.SkipDir
 			}
 			return nil
 		}
-		if d.IsDir() || !i.Mode().IsRegular() || st.Nlink != 1 {
+		if i.IsDir() {
 			return nil
 		}
-		// v0.1 only deletes archived logs; live .log files never qualify.
-		if !archived(d.Name()) || !match(d.Name(), r.Patterns) || !i.ModTime().Before(plan.Created.Add(-time.Duration(r.KeepDays)*24*time.Hour)) || busy[[2]uint64{st.Dev, st.Ino}] {
+		if !i.Mode().IsRegular() {
+			record(rel, "not_regular", "")
 			return nil
 		}
+		if st.Nlink != 1 {
+			record(rel, "hardlink", "")
+			return nil
+		}
+		if !archived(d.Name()) {
+			record(rel, "active_or_not_archive", "")
+			return nil
+		}
+		pattern := ""
+		for _, candidate := range r.Patterns {
+			if match(d.Name(), []string{candidate}) {
+				pattern = candidate
+				break
+			}
+		}
+		if pattern == "" {
+			record(rel, "pattern", "")
+			return nil
+		}
+		if !i.ModTime().Before(plan.Created.Add(-time.Duration(r.KeepDays) * 24 * time.Hour)) {
+			record(rel, "retention", pattern)
+			return nil
+		}
+		if busy[[2]uint64{st.Dev, st.Ino}] {
+			record(rel, "open", pattern)
+			return nil
+		}
+		record(rel, "eligible", pattern)
 		c := Candidate{Path: rel, Size: i.Size(), Modified: i.ModTime().UnixNano(), Inode: st.Ino, Device: st.Dev}
 		if len(plan.Files) >= 5000 {
 			return errors.New("more than 5000 candidates; narrow the rule before cleanup")
@@ -132,6 +173,10 @@ func (e *Engine) preview(ctx context.Context, r Rule) (Plan, error) {
 	})
 	if err != nil {
 		return plan, err
+	}
+	if !save {
+		plan.ID = ""
+		return plan, nil
 	}
 	for id, p := range e.plans {
 		if time.Since(p.Created) > 10*time.Minute {
@@ -144,12 +189,21 @@ func (e *Engine) preview(ctx context.Context, r Rule) (Plan, error) {
 	e.plans[plan.ID] = plan
 	return plan, nil
 }
-func (e *Engine) execute(ctx context.Context, id string) (CleanupResult, error) {
-	result := CleanupResult{Skipped: []string{}}
+func (e *Engine) execute(ctx context.Context, id string) (result CleanupResult, runErr error) {
+	result = CleanupResult{Skipped: []string{}, Items: []CleanupItem{}, Started: time.Now()}
+	defer func() { result.Finished = time.Now() }()
+	skip := func(path, status, reason string) {
+		result.Skipped = append(result.Skipped, path+": "+reason)
+		result.Items = append(result.Items, CleanupItem{Path: path, Status: status, Reason: reason})
+	}
 	p, ok := e.plans[id]
 	if !ok {
 		return result, errors.New("preview missing, expired or already consumed")
 	}
+	result.Root = p.Rule.Root
+	result.RuleName = p.Rule.Name
+	result.Planned = len(p.Files)
+	result.PlannedBytes = p.Bytes
 	delete(e.plans, id) // At-most-once: retries require a fresh preview.
 	if time.Since(p.Created) > 10*time.Minute {
 		return result, errors.New("preview expired")
@@ -175,23 +229,28 @@ func (e *Engine) execute(ctx context.Context, id string) (CleanupResult, error) 
 			return result, ctx.Err()
 		}
 		if err := noSymlinks(filepath.Join(path, c.Path)); err != nil {
-			result.Skipped = append(result.Skipped, c.Path+": path changed")
+			skip(c.Path, "skipped", "path changed")
 			continue
 		}
 		i, err := root.Lstat(c.Path)
 		if err != nil {
-			result.Skipped = append(result.Skipped, c.Path+": unavailable")
+			skip(c.Path, "skipped", "unavailable")
 			continue
 		}
 		st := i.Sys().(*syscall.Stat_t)
 		if !i.Mode().IsRegular() || st.Nlink != 1 || st.Ino != c.Inode || st.Dev != c.Device || i.Size() != c.Size || i.ModTime().UnixNano() != c.Modified || busy[[2]uint64{st.Dev, st.Ino}] {
-			result.Skipped = append(result.Skipped, c.Path+": changed or open")
+			skip(c.Path, "skipped", "changed or open")
 			continue
 		}
 		if err = removeVerified(root.Root, c, e.inspectOpen); err != nil {
-			result.Skipped = append(result.Skipped, c.Path+": "+err.Error())
+			status := "failed"
+			if err.Error() == "file is open" || err.Error() == "file identity changed" {
+				status = "skipped"
+			}
+			skip(c.Path, status, err.Error())
 			continue
 		}
+		result.Items = append(result.Items, CleanupItem{Path: c.Path, Status: "deleted", Bytes: st.Blocks * 512})
 		result.Deleted++
 		result.Bytes += st.Blocks * 512
 	}

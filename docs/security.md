@@ -32,3 +32,11 @@ This source review covers node authentication, task ownership, agent transport, 
 ## Verification
 
 Go race tests include root replacement, traversal, file replacement, hardlinks/open files, expired/replayed previews, strict configuration permissions, state file permissions, redirect rejection, cross-node task isolation, payload limits and poll budgets. Smoke tests exercise standalone and hub/agent flows. Frontend checks cover locale keys, formatting and build. CI also runs npm audit and govulncheck; new advisories can block future builds. This audit upgraded golang.org/x/sys to v0.44.0, addressing GO-2026-5024 even though its Windows-only package was not used by this Linux application. Scans with Go 1.27.1 found no remaining known vulnerabilities.
+
+## Alpha.2 additions
+
+Rule dry runs use the same allowlists and file checks but do not store an executable preview. Decision examples are bounded to 40 entries. Cleanup reports preserve file metadata, not file contents.
+
+Webhook URLs are loaded only from the protected hub config. The admin API returns only a configured flag. HTTPS notifications resolve and validate public IP addresses during connection, connect to that pinned address, reject redirects and avoid logging URL-bearing transport errors. Alerts are disabled by default; event history is capped at 100.
+
+Installer downloads trust this repository and verify SHA256SUMS. It snapshots the standard data path only after stopping the service, preserves configuration and custom units, and supports binary-only rollback. A short systemd startup check is not a guarantee of long-term health. Custom data paths and future incompatible migrations require operator-managed backups.

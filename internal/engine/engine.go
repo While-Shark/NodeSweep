@@ -73,6 +73,8 @@ func (e *Engine) Run(ctx context.Context, r Request) (any, error) {
 	switch r.Kind {
 	case "scan":
 		return e.scan(ctx, r.Path)
+	case "trial":
+		return e.review(ctx, r.Rule, false)
 	case "preview":
 		return e.preview(ctx, r.Rule)
 	case "execute":

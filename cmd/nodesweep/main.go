@@ -7,6 +7,7 @@ import (
 	"flag"
 	"fmt"
 	"github.com/While-Shark/NodeSweep/internal/agent"
+	"github.com/While-Shark/NodeSweep/internal/alerts"
 	"github.com/While-Shark/NodeSweep/internal/engine"
 	"github.com/While-Shark/NodeSweep/internal/hub"
 	"github.com/While-Shark/NodeSweep/internal/store"
@@ -23,6 +24,7 @@ import (
 )
 
 type Config struct {
+	WebhookURL   string   `json:"webhookURL,omitempty"`
 	Mode         string   `json:"mode"`
 	Listen       string   `json:"listen"`
 	Data         string   `json:"data"`
@@ -123,9 +125,15 @@ func run() error {
 		return err
 	}
 	defer s.DB.Close()
-	h := &hub.Hub{Store: s, Token: c.AdminToken, Context: ctx}
+	notifications, err := alerts.New(s.DB, c.WebhookURL)
+	if err != nil {
+		return err
+	}
+	h := &hub.Hub{Store: s, Token: c.AdminToken, Context: ctx, Alerts: notifications}
 	var background sync.WaitGroup
 	defer func() { cancelWork(); h.Wait(); background.Wait() }()
+	background.Add(1)
+	go func() { defer background.Done(); notifications.Run(ctx, s.Nodes) }()
 	if c.Mode == "standalone" {
 		h.Engine = e
 		background.Add(1)

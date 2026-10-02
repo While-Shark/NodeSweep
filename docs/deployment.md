@@ -127,3 +127,49 @@ npm run build
 CI 会检查五种语言的条目、占位符和语言回退。浏览器回归脚本使用 API 夹具验证界面流程，不操作实际日志目录；开发环境安装 Playwright 及 Chromium 后可运行 `npm run test:browser`，也可使用 `PLAYWRIGHT_MODULE` / `CHROMIUM_EXECUTABLE_PATH` 指定现有安装。脚本检查五种语言的登录、扫描、预览确认、导出、节点接入、偏好保存和 360/390px 布局。
 
 用户保存的节点、规则、方案名称以及路径、导出 JSON 不自动翻译；环境识别的预设说明和常见 API 错误在展示时翻译。未知系统错误、任务详情 JSON 保留原文，便于定位问题。
+
+## 安装、升级与回滚（Alpha.2）
+
+已解压发布包时，在包目录运行：
+
+```bash
+sudo bash install.sh --start
+```
+
+首次安装会生成 `/etc/nodesweep/config.json` 并监听本机 9780。Agent 可预先放入自己的配置；已有配置和 systemd 单元不会被覆盖。管理端和 Agent 请同步升级。
+
+也可使用本地 `install.sh` 下载指定的发布版本。脚本仅访问本仓库的 HTTPS 发布地址，自动识别 amd64/arm64，下载后检查 SHA256SUMS：
+
+```bash
+sudo bash install.sh --download v0.1.0-alpha.2 --start
+# 测试最新代码时才选 nightly：
+sudo bash install.sh --download nightly --start
+```
+
+升级会停止已运行的服务，备份配置及标准 `/var/lib/nodesweep/data`，原子替换二进制并重启。短暂启动检查失败会恢复旧二进制并尝试重启旧服务。自定义 `data` 路径需要自行备份。快照位于 `/var/lib/nodesweep/backups`，确认升级成功后可手动删除不需要的旧快照。
+
+```bash
+sudo bash install.sh --rollback
+```
+
+回滚只切换到上一个二进制，保留当前配置、数据库和任务；不会自动用旧快照覆盖新数据。若未来版本发生不兼容的配置或数据库迁移，需要按该版本说明恢复备份。`--root` 仅供隔离安装测试使用，不用于生产部署。
+
+## 规则试运行与清理报告
+
+清理方案中的“规则试运行”只检查规则，不创建可执行预览，不删除文件。面板展示已访问条目的判定数量，以及最多 40 个示例和命中的模式。排除目录不会展开，因此统计不代表目录内全部文件。
+
+正式执行仍须重新预览并确认。清理报告展示已删除、安全跳过、操作失败的文件、计划总量、分配空间和开始/结束时间；失败或中断任务的部分结果可在任务记录查看。分配空间并非磁盘可用空间净增长，例如其他进程同时写入或文件系统共享数据块时会有差异。
+
+## 磁盘与离线告警
+
+告警默认关闭。在“磁盘告警”页面开启，可设置磁盘/inode 使用阈值、离线等待和重复通知间隔。管理端每五秒检测一次，持久化状态以避免重启后重复首报，恢复时也记录事件。最多保留最近 100 条。
+
+没有 Webhook 时仅记录到面板。需要通知时，在管理端的权限 0600 配置文件加入：
+
+```json
+"webhookURL": "https://your-public-receiver.example/hooks/your-secret"
+```
+
+重新启动管理端后生效。Webhook 为通用 `POST application/json`：包含 `node`、`name`、`path`、`kind`（disk/inode/offline）、`percent`、`resolved` 和 `at`。接收端需处理此格式；不是 Slack/钉钉等平台的专有消息格式。地址只保存在管理端文件，不返回浏览器。仅支持公开 HTTPS 目标，拒绝私网、保留地址和重定向，并在连接时校验解析后的 IP，避免 DNS 重绑定。网络错误只记录通知失败，不展示含密钥的 URL。
+
+通知包含节点名称与路径，请使用你信任的接收端。没有邮件发送、自动升级或自动日志清理。

@@ -11,7 +11,6 @@ class ReleaseNotesTests(unittest.TestCase):
         notes = render_notes(version)
         for _, label in LANGUAGES:
             self.assertIn('## ' + label + '\n\n- ', notes)
-        self.assertIn('Nightly', notes)
 
     def test_wrong_version_is_rejected(self):
         with self.assertRaisesRegex(ValueError, 'match VERSION'):

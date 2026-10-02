@@ -1,7 +1,18 @@
 <script setup lang="ts">
+import ReviewDetails from "./ReviewDetails.vue";
+import CleanupReport from "./CleanupReport.vue";
+import type { CleanupResult } from "../api";
 import { t, systemText, type Notice } from "../i18n";
 import { ref, computed, onMounted } from "vue";
-import { api, task, size, type Rule, type Node, type Plan } from "../api";
+import {
+  api,
+  task,
+  size,
+  online,
+  type Rule,
+  type Node,
+  type Plan,
+} from "../api";
 import RuleTransfer from "./RuleTransfer.vue";
 const props = defineProps<{ node: Node }>();
 const rules = ref<Rule[]>([]);
@@ -9,6 +20,20 @@ const busy = ref(false);
 const error = ref("");
 const notice = ref<Notice>();
 const plans = ref<Plan[]>([]);
+const trials = ref<Plan[]>([]);
+const reports = ref<CleanupResult[]>([]);
+async function trial(rs: Rule[]) {
+  plans.value = [];
+  confirm.value = false;
+  reports.value = [];
+  trials.value = [];
+  await action(async () => {
+    for (const r of rs)
+      trials.value.push(
+        await task<Plan>(props.node.id, { kind: "trial", rule: r }),
+      );
+  });
+}
 const selectedScheme = ref("");
 const confirm = ref(false);
 const draft = ref<Rule>({
@@ -106,6 +131,8 @@ function edit(r: Rule) {
   excludes.value = r.excludes.join(", ");
 }
 async function preview(name: string, rs: Rule[]) {
+  trials.value = [];
+  reports.value = [];
   plans.value = [];
   confirm.value = false;
   selectedScheme.value = name;
@@ -120,6 +147,7 @@ async function preview(name: string, rs: Rule[]) {
 }
 async function execute() {
   await action(async () => {
+    reports.value = [];
     let bytes = 0,
       deleted = 0;
     const skipped: string[] = [];
@@ -132,6 +160,7 @@ async function execute() {
         deleted: number;
         skipped: string[];
       }>(props.node.id, { kind: "execute", planId: p.id });
+      reports.value.push(result);
       bytes += result.bytes;
       deleted += result.deleted;
       skipped.push(...result.skipped);
@@ -204,6 +233,11 @@ onMounted(() => action(reload));
           <div class="toolbar spread">
             <h3>{{ schemeLabel(scheme, group) }}</h3>
             <button
+              :disabled="busy || !online(node)"
+              @click="trial(group || [])"
+            >
+              {{ t("规则试运行") }}</button
+            ><button
               class="primary"
               :disabled="busy"
               @click="preview(scheme, group || [])"
@@ -277,6 +311,19 @@ onMounted(() => action(reload));
         ><button :disabled="busy" class="primary">{{ t("保存规则") }}</button>
       </form>
     </div>
+    <div v-for="(report, i) in reports" :key="'report' + i">
+      <CleanupReport :result="report" />
+    </div>
+    <section v-if="trials.length" class="card">
+      <h3>{{ t("规则试运行") }}</h3>
+      <p class="hint">
+        {{ t("仅检查规则，不创建可执行预览，也不删除文件。") }}
+      </p>
+      <div v-for="(trial, i) in trials" :key="i">
+        <h4>{{ trial.rule.name }}</h4>
+        <ReviewDetails v-if="trial.review" :review="trial.review" />
+      </div>
+    </section>
     <div v-if="plans.length" class="card preview">
       <div class="toolbar spread">
         <div>
@@ -303,6 +350,7 @@ onMounted(() => action(reload));
           {{ p.rule.name }} ·
           {{ t("{count} 个文件", { count: p.files.length }) }}
         </h4>
+        <ReviewDetails v-if="p.review" :review="p.review" />
         <div class="candidate-list">
           <div v-for="f in p.files" :key="f.path">
             <code>{{ f.path }}</code

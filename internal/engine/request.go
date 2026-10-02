@@ -18,7 +18,7 @@ func ValidateRequest(r Request) error {
 		if !filepath.IsAbs(r.Path) || len(r.Path) > 4096 || strings.ContainsRune(r.Path, 0) {
 			return errors.New("absolute path required")
 		}
-	case "preview":
+	case "preview", "trial":
 		return ValidateRule(r.Rule)
 	case "execute":
 		if !ValidID(r.PlanID) {

@@ -1,10 +1,15 @@
 <script setup lang="ts">
 import { t, systemText, taskKind, taskStatus } from "../i18n";
 import { onMounted, ref } from "vue";
+import CleanupReport from "./CleanupReport.vue";
+import ReviewDetails from "./ReviewDetails.vue";
+import type { CleanupResult, Plan } from "../api";
 import { api, date, type Task } from "../api";
 const tasks = ref<Task[]>([]);
 const error = ref("");
 const detail = ref("");
+const report = ref<CleanupResult>();
+const review = ref<Plan>();
 async function load() {
   try {
     tasks.value = await api<Task[]>("tasks");
@@ -13,8 +18,21 @@ async function load() {
   }
 }
 async function inspect(t: Task) {
+  detail.value = "";
+  report.value = undefined;
+  review.value = undefined;
+  error.value = "";
   try {
-    detail.value = JSON.stringify(await api("tasks/" + t.id), null, 2);
+    const data = await api<Task>("tasks/" + t.id);
+    report.value =
+      data.request.kind === "execute" && data.result
+        ? (data.result as CleanupResult)
+        : undefined;
+    review.value =
+      ["preview", "trial"].includes(data.request.kind) && data.result
+        ? (data.result as Plan)
+        : undefined;
+    detail.value = JSON.stringify(data, null, 2);
   } catch (e) {
     error.value = (e as Error).message;
   }
@@ -63,6 +81,8 @@ onMounted(load);
       </table>
       <p v-if="!tasks.length" class="empty">{{ t("还没有任务记录") }}</p>
     </div>
+    <CleanupReport v-if="report" :result="report" />
+    <ReviewDetails v-if="review?.review" :review="review.review" />
     <pre v-if="detail" class="card detail">{{ detail }}</pre>
   </section>
 </template>

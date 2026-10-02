@@ -112,6 +112,7 @@ export function systemText(value: string): string {
 export function taskKind(kind: string): string {
   const keys: Record<string, MessageKey> = {
     scan: "目录扫描",
+    trial: "规则试运行",
     preview: "清理预览",
     execute: "执行清理",
     detect: "环境识别",

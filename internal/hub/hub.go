@@ -15,11 +15,13 @@ import (
 	"sync"
 	"time"
 
+	"github.com/While-Shark/NodeSweep/internal/alerts"
 	"github.com/While-Shark/NodeSweep/internal/engine"
 	"github.com/While-Shark/NodeSweep/internal/store"
 )
 
 type Hub struct {
+	Alerts   *alerts.Service
 	Store    *store.Store
 	Engine   *engine.Engine
 	Token    string
@@ -86,6 +88,37 @@ func (h *Hub) Handler(assets fs.FS) http.Handler {
 func (h *Hub) api(w http.ResponseWriter, r *http.Request) {
 	p := strings.TrimPrefix(r.URL.Path, "/api/")
 	switch {
+	case p == "alerts" && r.Method == "GET":
+		if h.Alerts == nil {
+			fail(w, errors.New("alerts unavailable"), 503)
+			return
+		}
+		settings, e := h.Alerts.Settings()
+		if e != nil {
+			fail(w, e, 500)
+			return
+		}
+		events, e := h.Alerts.Events()
+		if e != nil {
+			fail(w, e, 500)
+			return
+		}
+		reply(w, map[string]any{"settings": settings, "events": events, "webhookConfigured": h.Alerts.Webhook != ""})
+	case p == "alerts" && r.Method == "PUT":
+		if h.Alerts == nil {
+			fail(w, errors.New("alerts unavailable"), 503)
+			return
+		}
+		var settings alerts.Settings
+		if e := decode(w, r, &settings); e != nil {
+			fail(w, e, 400)
+			return
+		}
+		if e := h.Alerts.Save(settings); e != nil {
+			fail(w, e, 400)
+			return
+		}
+		reply(w, map[string]bool{"ok": true})
 	case p == "nodes" && r.Method == "GET":
 		v, e := h.Store.Nodes()
 		if e != nil {
