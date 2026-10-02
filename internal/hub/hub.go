@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"crypto/subtle"
+	"database/sql"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -14,6 +15,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"unicode"
+	"unicode/utf8"
 
 	"github.com/While-Shark/NodeSweep/internal/alerts"
 	"github.com/While-Shark/NodeSweep/internal/engine"
@@ -128,23 +131,47 @@ func (h *Hub) api(w http.ResponseWriter, r *http.Request) {
 		reply(w, v)
 	case p == "nodes" && r.Method == "POST":
 		var b struct {
-			Name string `json:"name"`
+			Name  string `json:"name"`
+			Group string `json:"group"`
 		}
 		if e := decode(w, r, &b); e != nil {
 			fail(w, e, 400)
 			return
 		}
-		if len(strings.TrimSpace(b.Name)) < 1 || len(b.Name) > 100 {
-			fail(w, errors.New("name required, max 100 characters"), 400)
+		if !validMetadata(b.Name, b.Group) {
+			fail(w, errors.New("invalid node name or group"), 400)
 			return
 		}
 		token := engine.ID() + engine.ID()
-		n := store.Node{ID: engine.ID(), Name: b.Name}
+		n := store.Node{ID: engine.ID(), Name: strings.TrimSpace(b.Name), Group: strings.TrimSpace(b.Group)}
 		if e := h.Store.AddNode(n, Hash(token)); e != nil {
 			fail(w, e, 500)
 			return
 		}
 		reply(w, map[string]any{"node": n, "token": token})
+	case strings.HasPrefix(p, "nodes/") && r.Method == "PATCH":
+		var b struct {
+			Name  string `json:"name"`
+			Group string `json:"group"`
+		}
+		if e := decode(w, r, &b); e != nil {
+			fail(w, e, 400)
+			return
+		}
+		if !validMetadata(b.Name, b.Group) {
+			fail(w, errors.New("invalid node name or group"), 400)
+			return
+		}
+		e := h.Store.SetNodeMetadata(strings.TrimPrefix(p, "nodes/"), strings.TrimSpace(b.Name), strings.TrimSpace(b.Group))
+		if errors.Is(e, sql.ErrNoRows) {
+			fail(w, errors.New("node not found"), 404)
+			return
+		}
+		if e != nil {
+			fail(w, e, 500)
+			return
+		}
+		reply(w, map[string]bool{"ok": true})
 	case strings.HasPrefix(p, "nodes/") && r.Method == "DELETE":
 		h.mu.Lock()
 		defer h.mu.Unlock()
@@ -423,3 +450,15 @@ func (h *Hub) workContext() context.Context {
 
 // Stop admission before waiting so Add and Wait cannot race during shutdown.
 func (h *Hub) Wait() { h.mu.Lock(); h.stopping = true; h.mu.Unlock(); h.workers.Wait() }
+
+func validMetadata(name, group string) bool {
+	if !utf8.ValidString(name) || !utf8.ValidString(group) || strings.TrimSpace(name) == "" || utf8.RuneCountInString(name) > 100 || utf8.RuneCountInString(group) > 64 {
+		return false
+	}
+	for _, r := range name + group {
+		if unicode.IsControl(r) {
+			return false
+		}
+	}
+	return true
+}

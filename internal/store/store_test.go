@@ -207,3 +207,42 @@ func TestRevocationInterruptsUndeliveredTasks(t *testing.T) {
 		t.Fatal("revoked task delivered", err)
 	}
 }
+
+func TestNodeMetadataSurvivesStaleMetricsAndRestart(t *testing.T) {
+	p := filepath.Join(t.TempDir(), "state.db")
+	s, err := Open(p)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { s.DB.Close() }()
+	stale := Node{ID: "local", Name: "old", LastSeen: time.Now(), Roots: []string{"/var/log"}}
+	if err = s.AddNode(stale, "secret-hash"); err != nil {
+		t.Fatal(err)
+	}
+	if err = s.SetNodeMetadata("local", "renamed", "production"); err != nil {
+		t.Fatal(err)
+	}
+	stale.Metrics.Host = "fresh-host"
+	if err = s.UpdateNode(stale); err != nil {
+		t.Fatal(err)
+	}
+	s.DB.Close()
+	s, err = Open(p)
+	if err != nil {
+		t.Fatal(err)
+	}
+	n, err := s.Node("local")
+	if err != nil || n.Name != "renamed" || n.Group != "production" || n.Metrics.Host != "fresh-host" || len(n.Roots) != 1 || s.Token("local") != "secret-hash" {
+		t.Fatalf("lost metadata/metrics/credentials: %+v %v", n, err)
+	}
+	if err = s.SetNodeMetadata("missing", "x", ""); err == nil {
+		t.Fatal("missing node accepted")
+	}
+	if err = s.SetNodeMetadata("local", "renamed", ""); err != nil {
+		t.Fatal(err)
+	}
+	nodes, err := s.Nodes()
+	if err != nil || len(nodes) != 1 || nodes[0].Group != "" {
+		t.Fatalf("cannot ungroup: %+v %v", nodes, err)
+	}
+}

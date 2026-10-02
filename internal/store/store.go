@@ -18,6 +18,7 @@ type Store struct{ DB *sql.DB }
 type Node struct {
 	ID        string         `json:"id"`
 	Name      string         `json:"name"`
+	Group     string         `json:"group"`
 	LastSeen  time.Time      `json:"lastSeen"`
 	Metrics   engine.Metrics `json:"metrics"`
 	Roots     []string       `json:"roots"`
@@ -122,8 +123,28 @@ func (s *Store) UpdateNode(n Node) error {
 	if e != nil {
 		return e
 	}
-	_, e = s.DB.Exec("UPDATE nodes SET body=? WHERE id=?", string(b), n.ID)
+	_, e = s.DB.Exec(`UPDATE nodes SET body=json_set(body,
+ "$.lastSeen",json_extract(?,"$.lastSeen"),
+ "$.metrics",json_extract(?,"$.metrics"),
+ "$.roots",json_extract(?,"$.roots"),
+ "$.scanRoots",json_extract(?,"$.scanRoots")) WHERE id=?`, string(b), string(b), string(b), string(b), n.ID)
 	return e
+}
+
+// Metadata is updated separately so stale metric samples cannot overwrite admin edits.
+func (s *Store) SetNodeMetadata(id, name, group string) error {
+	result, err := s.DB.Exec(`UPDATE nodes SET name=?,body=json_set(body,'$.name',?,'$.group',?) WHERE id=?`, name, name, group, id)
+	if err != nil {
+		return err
+	}
+	count, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if count == 0 {
+		return sql.ErrNoRows
+	}
+	return nil
 }
 func (s *Store) Token(id string) string {
 	var t string

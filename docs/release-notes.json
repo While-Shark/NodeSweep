@@ -1,50 +1,35 @@
 {
-  "version": "0.1.0-alpha.2",
+  "version": "0.1.0-alpha.3",
   "changes": {
     "en": [
-      "Add verified release downloads with automatic CPU architecture selection, configuration-preserving upgrades, stopped-state snapshots, binary rollback and automatic restoration when activation fails.",
-      "Add non-destructive rule dry runs showing eligibility, exclusions, open files, hardlinks, retention and matching patterns; samples are limited to 40 entries.",
-      "Add structured cleanup reports with per-file outcomes, allocated space, planned totals and execution timestamps. Reports remain available in task history, including partial failed tasks.",
-      "Add optional disk/inode thresholds and offline alerts, persistent cooldown state, recovery events and a bounded 100-event history. Alerts are disabled by default.",
-      "Add generic JSON HTTPS Webhook notifications configured only in the protected hub configuration; public destination checks block private/reserved IPs, DNS rebinding and redirects. The webhook URL is not returned to the browser.",
-      "All new UI and release descriptions support English, Simplified Chinese, Traditional Chinese, Japanese and Korean. Builds run after new commits pass CI; there is no daily schedule.",
-      "Alpha: upgrade the hub and agents together. Rollback changes the binary only; configuration and database are preserved. Validate on a test VPS before production use."
+      "Add persistent node groups and renaming, with group filters in the overview and batch workspace. Metric reports preserve administrator edits.",
+      "Add non-destructive batch scans and rule previews for up to 20 online nodes, processing two at a time. Each node reports its own result or error; offline nodes are excluded and one failure does not block the others.",
+      "Keep local directory allowlists and individual cleanup confirmation. Leaving the batch page stops further submissions and browser polling; already submitted tasks remain available in task history.",
+      "Add five-language UI, documentation and release notes, with regression checks for metadata authorization, persistence, stale metrics, node isolation, partial failures and mobile layouts."
     ],
     "zh-CN": [
-      "加入校验后下载发布包、自动识别 CPU 架构、保留配置升级、停机状态快照、二进制回滚，以及启动失败后自动恢复旧版本。",
-      "加入不删除文件的规则试运行，解释匹配、排除、占用、硬链接、保留期限与文件名模式；示例最多 40 项。",
-      "加入结构化清理报告，显示逐文件结果、分配空间、计划总量和执行时间；任务记录可查看报告，包括失败任务的部分结果。",
-      "加入可选的磁盘、inode 阈值及离线告警、持久化重复通知间隔、恢复事件和最多 100 条事件记录；告警默认关闭。",
-      "加入通用 JSON HTTPS Webhook 通知，地址仅在受保护的管理端配置文件设置；拒绝私网及保留地址、DNS 重绑定和重定向，浏览器无法读取 Webhook 地址。",
-      "新增界面和发布说明均支持英、简体、繁体、日、韩五语；只在新提交通过 CI 后自动构建，没有每日定时任务。",
-      "Alpha：请同步升级管理端与 Agent。回滚仅切换二进制，保留配置和数据库；生产使用前请先在测试 VPS 验证。"
+      "加入持久化节点分组、重命名及总览和批量页面分组筛选；指标上报保留管理员修改。",
+      "加入不删除文件的批量扫描和规则预览，每批最多 20 台在线节点、同时处理 2 台；结果与错误按节点显示，排除离线节点，单台失败不阻断其他节点。",
+      "保留节点本地允许目录与单节点清理确认；离开批量页面停止后续提交和浏览器轮询，已提交任务仍可在任务记录查看。",
+      "同步五语界面、文档及发布说明，补充元数据权限、持久化、旧指标覆盖、节点隔离、部分失败及移动端回归验证。"
     ],
     "zh-TW": [
-      "加入校驗後下載發布包、自動辨識 CPU 架構、保留設定升級、停機狀態快照、二進位回滾及啟動失敗後自動恢復舊版本。",
-      "加入不刪除檔案的規則試執行，解釋比對、排除、占用、硬連結、保留期限與檔名模式；範例最多 40 項。",
-      "加入結構化清理報告，顯示逐檔結果、配置空間、計畫總量及執行時間；任務紀錄可查看報告，包含失敗任務的部分結果。",
-      "加入可選的磁碟、inode 閾值與離線告警、持久化重複通知間隔、恢復事件及最多 100 筆事件紀錄；告警預設關閉。",
-      "加入通用 JSON HTTPS Webhook 通知，位址只在受保護的管理端設定檔設定；拒絕私網及保留位址、DNS 重綁定和重新導向，瀏覽器無法讀取 Webhook 位址。",
-      "新增介面及發布說明均支援英、簡體、繁體、日、韓五語；僅新提交通過 CI 後自動建置，沒有每日排程。",
-      "Alpha：請同步升級管理端與 Agent。回滾只切換二進位檔，保留設定與資料庫；正式使用前請先在測試 VPS 驗證。"
+      "加入持久化節點分組、重新命名及總覽與批次頁面分組篩選；指標上報保留管理員修改。",
+      "加入不刪除檔案的批次掃描和規則預覽，每批最多 20 台線上節點、同時處理 2 台；逐節點顯示結果與錯誤，排除離線節點，單台失敗不阻斷其他節點。",
+      "保留節點本機允許目錄與單節點清理確認；離開批次頁面停止後續提交和瀏覽器輪詢，已提交任務仍可在任務紀錄查看。",
+      "同步五語介面、文件及發布說明，補充中繼資料權限、持久化、舊指標覆蓋、節點隔離、部分失敗及行動版回歸驗證。"
     ],
     "ja": [
-      "チェックサム検証付きのリリース取得、CPU 構成の自動判定、設定を保持する更新、停止中のスナップショット、バイナリのロールバック、起動失敗時の旧版復元を追加。",
-      "削除を行わないルール試行を追加。対象・除外・使用中・ハードリンク・保持期間・一致パターンを説明し、例は最大 40 件。",
-      "ファイル別の結果、割り当て容量、計画合計、実行時間を示す整理レポートを追加。失敗時の部分結果もタスク履歴から確認できます。",
-      "任意のディスク／inode しきい値とオフライン通知、永続的な再通知間隔、復旧イベント、最大 100 件の履歴を追加。通知は初期状態で無効です。",
-      "一般的な JSON HTTPS Webhook 通知を追加。URL は保護されたハブ設定のみで指定。プライベート・予約アドレス、DNS リバインディング、リダイレクトを拒否し、URL をブラウザーへ返しません。",
-      "新しい UI とリリース説明は英語・簡体字・繁体字・日本語・韓国語に対応。新しいコミットの CI 成功後にビルドし、毎日の定期実行はありません。",
-      "Alpha：ハブと Agent を一緒に更新してください。ロールバックはバイナリのみで設定と DB は保持します。本番前にテスト VPS で検証してください。"
+      "永続的なノードグループと名前変更、概要と一括ページのグループ絞り込みを追加。メトリクスの報告は管理者の変更を保持します。",
+      "削除を行わない一括スキャンとルールプレビューを追加。オンラインノードを最大20台、同時に2台処理します。結果とエラーを個別表示し、オフラインを除外して、一台の失敗で他の処理を止めません。",
+      "各ノードの許可ディレクトリと個別の削除確認を維持。ページを離れると追加の送信とブラウザーの確認を停止し、送信済みタスクは履歴で確認できます。",
+      "5言語のUI、文書、リリース説明を更新。権限、永続化、古いメトリクス、ノード分離、部分失敗、モバイル表示の回帰検証を追加。"
     ],
     "ko": [
-      "체크섬 검증을 통한 릴리스 다운로드, CPU 아키텍처 자동 선택, 설정 유지 업그레이드, 정지 상태 스냅샷, 바이너리 롤백과 시작 실패 시 이전 버전 자동 복원을 추가했습니다.",
-      "파일을 삭제하지 않는 규칙 시험 실행을 추가했습니다. 대상, 제외, 사용 중, 하드 링크, 보존 기간과 일치 패턴을 설명하며 예시는 최대 40개입니다.",
-      "파일별 결과, 할당 공간, 계획 합계와 실행 시간을 보여 주는 정리 보고서를 추가했습니다. 실패한 작업의 부분 결과도 작업 기록에서 볼 수 있습니다.",
-      "선택적 디스크/inode 임계값과 오프라인 알림, 영구 반복 알림 간격, 복구 이벤트와 최대 100개 기록을 추가했습니다. 기본적으로 알림은 꺼져 있습니다.",
-      "일반 JSON HTTPS Webhook 알림을 추가했습니다. URL은 보호된 허브 설정 파일에서만 지정합니다. 사설·예약 IP, DNS 리바인딩과 리디렉션을 차단하며 브라우저에 URL을 반환하지 않습니다.",
-      "새 UI와 릴리스 설명은 영어, 중국어 간체·번체, 일본어와 한국어를 지원합니다. 새 커밋의 CI 성공 후에만 빌드하며 매일 예약 실행은 없습니다.",
-      "Alpha: 허브와 Agent를 함께 업그레이드하세요. 롤백은 바이너리만 변경하고 설정과 DB는 유지합니다. 운영 환경 전에 테스트 VPS에서 검증하세요."
+      "영구 노드 그룹과 이름 변경, 개요 및 일괄 페이지의 그룹 필터를 추가했습니다. 지표 보고 시 관리자 변경 내용을 유지합니다.",
+      "파일을 삭제하지 않는 일괄 스캔과 규칙 미리보기를 추가했습니다. 온라인 노드 최대 20개를 동시에 2개씩 처리합니다. 노드별 결과와 오류를 표시하고 오프라인 노드를 제외하며 한 노드의 실패가 다른 노드를 중단하지 않습니다.",
+      "각 노드의 로컬 허용 디렉터리와 개별 정리 확인을 유지합니다. 페이지를 떠나면 추가 제출과 브라우저 조회를 중단하며 이미 제출한 작업은 작업 기록에서 확인할 수 있습니다.",
+      "5개 언어 UI, 문서와 릴리스 설명을 업데이트했습니다. 권한, 영구 저장, 오래된 지표, 노드 격리, 부분 실패와 모바일 회귀 검증을 추가했습니다."
     ]
   }
 }

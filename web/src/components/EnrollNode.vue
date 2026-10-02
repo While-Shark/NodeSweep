@@ -4,6 +4,7 @@ import { ref, computed } from "vue";
 import { api, type Node } from "../api";
 const emit = defineEmits<{ close: []; added: [] }>();
 const name = ref("");
+const group = ref("");
 const created = ref<{ node: Node; token: string }>();
 const error = ref("");
 const busy = ref(false);
@@ -24,7 +25,10 @@ const config = computed(() =>
 async function create() {
   busy.value = true;
   try {
-    created.value = await api("nodes", "POST", { name: name.value });
+    created.value = await api("nodes", "POST", {
+      name: name.value,
+      group: group.value,
+    });
     emit("added");
   } catch (e) {
     error.value = (e as Error).message;
@@ -65,6 +69,9 @@ function download() {
             maxlength="100"
             :placeholder="t('香港 VPS')"
             autofocus
+        /></label>
+        <label
+          >{{ t("节点分组") }}<input v-model="group" maxlength="64"
         /></label>
         <p class="hint">{{ t("每台服务器使用独立凭证，可随时撤销。") }}</p>
         <button class="primary" :disabled="busy">

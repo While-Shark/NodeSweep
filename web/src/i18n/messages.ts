@@ -957,5 +957,56 @@ export const messages = {
     "알림 임계값이 유효하지 않습니다",
     "告警閾值無效",
   ],
+  节点分组: ["Node group", "ノードグループ", "노드 그룹", "節點分組"],
+  未分组: ["Ungrouped", "未分類", "그룹 없음", "未分組"],
+  编辑节点: ["Edit node", "ノードを編集", "노드 편집", "編輯節點"],
+  选择本组在线节点: [
+    "Select online nodes in this group",
+    "グループのオンラインノードを選択",
+    "이 그룹의 온라인 노드 선택",
+    "選擇本組線上節點",
+  ],
+  "请选择 1–20 台在线节点": [
+    "Select 1–20 online nodes",
+    "オンラインノードを1〜20台選択してください",
+    "온라인 노드 1–20개를 선택하세요",
+    "請選擇 1–20 台線上節點",
+  ],
+  批量操作: ["Batch operations", "一括操作", "일괄 작업", "批次操作"],
+  批量扫描: ["Batch scan", "一括スキャン", "일괄 스캔", "批次掃描"],
+  批量预览: ["Batch preview", "一括プレビュー", "일괄 미리보기", "批次預覽"],
+  "每批最多 20 台，同时处理 2 台。扫描和预览不删除文件；离开页面后已提交任务继续执行，可在任务记录查看。":
+    [
+      "Up to 20 nodes per batch, with 2 processed at a time. Scans and previews do not delete files. Submitted tasks continue after leaving this page; check task history for results.",
+      "1回に最大20台、同時に2台を処理します。スキャンとプレビューは削除を行いません。ページを離れても送信済みタスクは続行され、履歴で確認できます。",
+      "일괄 최대 20개, 동시에 2개 노드를 처리합니다. 스캔과 미리보기는 파일을 삭제하지 않습니다. 페이지를 떠나도 제출한 작업은 계속되며 작업 기록에서 확인할 수 있습니다.",
+      "每批最多 20 台，同時處理 2 台。掃描和預覽不刪除檔案；離開頁面後已提交任務繼續執行，可在任務紀錄查看。",
+    ],
+  "所有节点使用相同路径或规则，各节点仍按本地允许目录校验。清理请进入单节点页面重新预览并确认。":
+    [
+      "All nodes use the same path or rule and enforce their local directory allowlists. To clean up, open an individual node and create a fresh preview before confirming.",
+      "全ノードに同じパスまたはルールを使い、各ノードの許可ディレクトリで検証します。削除する場合は個別ノードで再プレビューし、確認してください。",
+      "모든 노드에 같은 경로나 규칙을 사용하며 각 노드의 로컬 허용 디렉터리를 검증합니다. 정리하려면 개별 노드에서 새로 미리 보고 확인하세요.",
+      "所有節點使用相同路徑或規則，各節點仍按本機允許目錄驗證。清理請進入單節點頁面重新預覽並確認。",
+    ],
+  清理规则: ["Cleanup rule", "整理ルール", "정리 규칙", "清理規則"],
+  选择: ["Select", "選択", "선택", "選擇"],
+  文件数量: ["File count", "ファイル数", "파일 수", "檔案數量"],
+  跳过条目: ["Skipped entries", "スキップした項目", "건너뛴 항목", "略過項目"],
+  "扫描达到上限，结果不完整": [
+    "Scan limit reached; results are incomplete",
+    "スキャン上限に達したため結果は不完全です",
+    "스캔 한도에 도달하여 결과가 불완전합니다",
+    "掃描達到上限，結果不完整",
+  ],
+  节点名称或分组无效: [
+    "Invalid node name or group",
+    "ノード名またはグループが無効です",
+    "노드 이름 또는 그룹이 잘못되었습니다",
+    "節點名稱或分組無效",
+  ],
+  操作: ["Actions", "操作", "작업", "操作"],
+  扫描路径: ["Scan path", "スキャンパス", "스캔 경로", "掃描路徑"],
+  保存: ["Save", "保存", "저장", "儲存"],
 } as const;
 export type MessageKey = keyof typeof messages;

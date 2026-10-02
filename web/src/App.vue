@@ -3,6 +3,7 @@ import { t, systemText } from "./i18n";
 import { ref, computed, onUnmounted } from "vue";
 import { api, setToken, online, type Node } from "./api";
 import LanguagePicker from "./components/LanguagePicker.vue";
+import BatchOperations from "./components/BatchOperations.vue";
 import Overview from "./components/Overview.vue";
 import DiskExplorer from "./components/DiskExplorer.vue";
 import RulesPanel from "./components/RulesPanel.vue";
@@ -105,7 +106,9 @@ onUnmounted(() => clearInterval(timer));
           :class="{ active: page === 'alerts' }"
           @click="page = 'alerts'"
         >
-          ⚑　{{ t("磁盘告警") }}
+          ⚑　{{ t("磁盘告警") }}</button
+        ><button :class="{ active: page === 'batch' }" @click="page = 'batch'">
+          ▤　{{ t("批量操作") }}
         </button>
       </nav>
       <div class="sidebar-bottom">
@@ -128,9 +131,11 @@ onUnmounted(() => clearInterval(timer));
                   ? t("磁盘分析")
                   : page === "rules"
                     ? t("清理方案")
-                    : page === "alerts"
-                      ? t("磁盘告警")
-                      : t("任务记录")
+                    : page === "batch"
+                      ? t("批量操作")
+                      : page === "alerts"
+                        ? t("磁盘告警")
+                        : t("任务记录")
             }}
           </h1>
         </div>
@@ -170,6 +175,12 @@ onUnmounted(() => clearInterval(timer));
         v-else-if="page === 'rules' && current"
         :key="'rules' + current.id"
         :node="current"
+      />
+      <BatchOperations
+        v-else-if="page === 'batch'"
+        :nodes="nodes"
+        @changed="reload"
+        @select="select"
       />
       <TaskHistory v-else-if="page === 'tasks'" /><AlertsPanel
         v-else-if="page === 'alerts'"

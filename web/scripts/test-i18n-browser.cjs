@@ -100,6 +100,8 @@ const server = http.createServer((req, res) => {
           ],
         },
       };
+      let fixtureNodes = [node];
+      const submitted = [];
       await page.route("**/api/**", async (route) => {
         const request = route.request();
         const url = new URL(request.url());
@@ -120,8 +122,15 @@ const server = http.createServer((req, res) => {
                   node: { ...node, id: "remote", name: body.name },
                   token: "fixture-token-not-a-real-credential",
                 }
-              : [node],
+              : fixtureNodes,
           );
+        if (endpoint.startsWith("nodes/") && request.method() === "PATCH") {
+          Object.assign(
+            fixtureNodes.find((n) => n.id === endpoint.split("/")[1]),
+            body,
+          );
+          return send({ ok: true });
+        }
         if (endpoint === "alerts") {
           if (request.method() === "PUT") {
             settings = body;
@@ -152,6 +161,7 @@ const server = http.createServer((req, res) => {
             rules: [{ ...rule, id: "" }],
           });
         if (endpoint === "tasks" && request.method() === "POST") {
+          submitted.push(body);
           const id = "t" + (tasks.size + 1);
           let result;
           if (body.request.kind === "detect")
@@ -210,8 +220,9 @@ const server = http.createServer((req, res) => {
             };
           tasks.set(id, {
             id,
-            node: "local",
-            status: "succeeded",
+            node: body.node,
+            status: body.node === "remote" ? "failed" : "succeeded",
+            error: body.node === "remote" ? "node offline" : undefined,
             created: new Date().toISOString(),
             request: body.request,
             result,
@@ -368,7 +379,7 @@ const server = http.createServer((req, res) => {
       await page
         .getByRole("button", { name: label(locale, "添加节点"), exact: false })
         .click();
-      await page.locator(".modal input").fill("自定义 VPS");
+      await page.locator(".modal input").first().fill("自定义 VPS");
       await page
         .getByRole("button", {
           name: label(locale, "生成节点配置"),
@@ -396,9 +407,92 @@ const server = http.createServer((req, res) => {
       await page.locator(".success").waitFor();
       assert.equal(settings.enabled, true);
       assert.ok((await page.locator("main").innerText()).includes("91.2%"));
+      node.group = "production";
+      fixtureNodes = [
+        node,
+        { ...node, id: "remote", name: "second-vps" },
+        {
+          ...node,
+          id: "offline",
+          name: "offline-vps",
+          lastSeen: "2000-01-01T00:00:00Z",
+        },
+      ];
+      await page.locator("aside nav button").nth(5).click();
+      await page.locator("table tbody tr").nth(2).waitFor();
+      assert.ok(
+        await page
+          .getByRole("checkbox", { name: "offline-vps", exact: true })
+          .isDisabled(),
+      );
+      await page
+        .getByRole("button", {
+          name: label(locale, "选择本组在线节点"),
+          exact: true,
+        })
+        .click();
+      const batchStart = submitted.length;
+      await page
+        .getByRole("button", { name: label(locale, "批量扫描"), exact: true })
+        .click();
+      await page
+        .locator("article")
+        .filter({ hasText: "1,234" })
+        .or(page.locator("article").filter({ hasText: "1234" }))
+        .first()
+        .waitFor();
+      await page.locator("article .error").waitFor();
+      assert.deepEqual(
+        submitted
+          .slice(batchStart)
+          .map((x) => x.node)
+          .sort(),
+        ["local", "remote"],
+      );
+      assert.ok(
+        submitted.slice(batchStart).every((x) => x.request.kind === "scan"),
+      );
+      await page
+        .getByRole("button", { name: label(locale, "批量预览"), exact: true })
+        .click();
+      await page.locator("article .review-details").waitFor();
+      assert.equal(executions, 1);
+      await page
+        .getByRole("button", { name: label(locale, "编辑节点"), exact: true })
+        .first()
+        .click();
+      await page.locator(".modal input").nth(0).fill("renamed-vps");
+      await page.locator(".modal input").nth(1).fill("*");
+      await page
+        .getByRole("button", { name: label(locale, "保存"), exact: true })
+        .click();
+      await page.locator(".modal").waitFor({ state: "hidden" });
+      await page.locator("main > section select").first().selectOption("g:*");
+      await page.waitForFunction(
+        () =>
+          document.querySelectorAll("main > section > div.card table tbody tr")
+            .length === 1,
+      );
+      assert.equal(
+        await page.locator("main > section > div.card table tbody tr").count(),
+        1,
+      );
+      assert.ok(
+        (
+          await page
+            .locator("main > section > div.card table tbody tr")
+            .innerText()
+        ).includes("renamed-vps"),
+      );
+      await page.locator("aside nav button").nth(0).click();
+      await page.locator(".section-heading select").selectOption("g:*");
+      await page.waitForFunction(
+        () => document.querySelectorAll(".node-card").length === 1,
+      );
+      assert.equal(await page.locator(".node-card").count(), 1);
       for (const width of [390, 360]) {
         await page.setViewportSize({ width, height: 844 });
-        for (let i = 0; i < 5; i++) {
+        for (let i = 0; i < 6; i++) {
           await page.locator("aside nav button").nth(i).click();
           const overflow = await page.evaluate(
             () => document.documentElement.scrollWidth > innerWidth + 1,
@@ -415,7 +509,7 @@ const server = http.createServer((req, res) => {
       console.log(
         "PASS browser: " +
           locale +
-          " login, scan, dry run, cleanup report, alerts, export, enrollment and mobile layouts",
+          " login, scan, dry run, cleanup report, alerts, node groups, batch isolation, export, enrollment and mobile layouts",
       );
     }
     const blocked = await browser.newContext({ locale: "ko-KR" });

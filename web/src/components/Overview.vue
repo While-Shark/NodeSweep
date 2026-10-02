@@ -1,9 +1,18 @@
 <script setup lang="ts">
 import { t, number } from "../i18n";
-import { computed } from "vue";
+import { computed, ref } from "vue";
 import { size, online, type Node } from "../api";
 const props = defineProps<{ nodes: Node[] }>();
 const emit = defineEmits<{ select: [id: string] }>();
+const group = ref("*");
+const groups = computed(() =>
+  [...new Set(props.nodes.map((n) => n.group || ""))].sort(),
+);
+const visible = computed(() =>
+  props.nodes.filter(
+    (n) => group.value === "*" || (n.group || "") === group.value.slice(2),
+  ),
+);
 const active = computed(() => props.nodes.filter(online).length);
 const total = computed(() =>
   props.nodes.reduce(
@@ -47,17 +56,28 @@ const free = computed(() =>
     </div>
     <div class="section-heading">
       <h2>{{ t("全部节点") }}</h2>
+      <label
+        >{{ t("节点分组")
+        }}<select v-model="group">
+          <option value="*">{{ t("全部节点") }}</option>
+          <option v-for="g in groups" :key="g" :value="'g:' + g">
+            {{ g || t("未分组") }}
+          </option>
+        </select></label
+      >
       <span class="hint">{{ t("每 5 秒更新 · 离线指标保留最后一次值") }}</span>
     </div>
     <div class="node-grid">
       <button
-        v-for="n in nodes"
+        v-for="n in visible"
         :key="n.id"
         class="card node-card"
         @click="emit('select', n.id)"
       >
         <div class="toolbar spread">
-          <h3>{{ n.name }}</h3>
+          <h3>
+            {{ n.name }}<small v-if="n.group"> · {{ n.group }}</small>
+          </h3>
           <span :class="['status', online(n) ? 'up' : 'down']">{{
             online(n) ? t("在线") : t("离线")
           }}</span>

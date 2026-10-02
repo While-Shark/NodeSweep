@@ -14,6 +14,8 @@ The screenshot shows a local test hub, two agents and test log directories. The 
 
 ## Features
 
+Persistent node groups and renaming, with group filters in the overview and batch workspace. Metric reports preserve administrator edits. Non-destructive batch scans and rule previews for up to 20 online nodes, processing two at a time. Each node reports its own result or error; offline nodes are excluded and one failure does not block the others. Each node enforces its local directory allowlist, and cleanup requires individual confirmation. Leaving the batch page stops further submissions and browser polling; already submitted tasks remain available in task history.
+
 - CPU, memory, load, disk capacity and inode usage across multiple VPS nodes.
 - Directory drilldown with a rectangular treemap and file/directory lists.
 - Cleanup plans with multiple rules: paths, patterns, exclusions and retention days.
@@ -82,7 +84,7 @@ Release descriptions include reviewed change summaries in all five languages. Up
 
 ## Installation, reports and alerts
 
-Run `sudo bash install.sh --start` from an extracted bundle. To download a checked build, use `sudo bash install.sh --download v0.1.0-alpha.2 --start` (or `nightly` for testing). Upgrades preserve configuration, snapshot standard stopped state and restore the old binary if activation fails. `sudo bash install.sh --rollback` swaps binaries without restoring old database/configuration snapshots. Custom data paths require an operator backup; clean up obsolete snapshots after verification.
+Run `sudo bash install.sh --start` from an extracted bundle. To download a checked build, use `sudo bash install.sh --download v0.1.0-alpha.3 --start` (or `nightly` for testing). Upgrades preserve configuration, snapshot standard stopped state and restore the old binary if activation fails. `sudo bash install.sh --rollback` swaps binaries without restoring old database/configuration snapshots. Custom data paths require an operator backup; clean up obsolete snapshots after verification.
 
 Rule dry runs explain matching/exclusion decisions without creating an executable preview. Cleanup reports show file outcomes, allocated space and execution times, including partial failed tasks in task history. Allocated space is not net free-space growth.
 

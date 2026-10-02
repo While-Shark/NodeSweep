@@ -9,6 +9,7 @@ export interface Disk {
 export interface Node {
   id: string;
   name: string;
+  group?: string;
   lastSeen: string;
   roots: string[];
   scanRoots: string[];
@@ -86,9 +87,11 @@ export async function api<T>(
   path: string,
   method = "GET",
   body?: unknown,
+  signal?: AbortSignal,
 ): Promise<T> {
   const response = await fetch("/api/" + path, {
     method,
+    signal,
     headers: {
       Authorization: "Bearer " + token,
       "Content-Type": "application/json",
@@ -99,11 +102,21 @@ export async function api<T>(
   if (!response.ok) throw new Error(data.error || "请求失败");
   return data;
 }
-export async function task<T>(node: string, request: unknown): Promise<T> {
-  const created = await api<Task>("tasks", "POST", { node, request });
+export async function task<T>(
+  node: string,
+  request: unknown,
+  signal?: AbortSignal,
+): Promise<T> {
+  const created = await api<Task>("tasks", "POST", { node, request }, signal);
   for (let i = 0; i < 130; i++) {
     await new Promise((r) => setTimeout(r, 1000));
-    const current = await api<Task & { result: T }>("tasks/" + created.id);
+    signal?.throwIfAborted();
+    const current = await api<Task & { result: T }>(
+      "tasks/" + created.id,
+      "GET",
+      undefined,
+      signal,
+    );
     if (current.status === "succeeded") {
       if (current.result == null)
         throw new Error("任务结果已过期，请重新扫描或预览。");

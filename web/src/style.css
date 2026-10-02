@@ -677,6 +677,7 @@ footer {
     display: none;
   }
   aside nav {
+    flex-wrap: wrap;
     flex-direction: row;
     margin: 0;
     gap: 2px;
@@ -851,4 +852,16 @@ footer {
 }
 .node-card .status {
   flex-shrink: 0;
+}
+
+.batch-operations .toolbar {
+  flex-wrap: wrap;
+}
+.batch-operations .toolbar > *,
+.batch-operations select {
+  min-width: 0;
+  max-width: 100%;
+}
+.batch-operations h3 {
+  overflow-wrap: anywhere;
 }
