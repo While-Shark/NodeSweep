@@ -1,6 +1,9 @@
 import type { MessageKey } from "./messages";
 // Known API diagnostics; unknown details remain available verbatim.
 export const errorKeys: Record<string, MessageKey> = {
+  "internal server error": "服务器内部错误，请查看服务端日志",
+  "invalid preview identifier": "预览标识无效，请重新预览",
+  "node poll rate exceeded": "节点请求过于频繁，请稍后重试",
   "absolute path required": "请输入绝对路径",
   "rule root must be an absolute path, max 4096 characters":
     "日志目录必须是绝对路径，最多 4096 个字符",

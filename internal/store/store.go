@@ -4,8 +4,10 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"net/url"
 	"os"
 	"path/filepath"
+	"syscall"
 	"time"
 
 	"github.com/While-Shark/NodeSweep/internal/engine"
@@ -23,15 +25,33 @@ type Node struct {
 }
 
 func Open(path string) (*Store, error) {
-	if err := os.MkdirAll(filepath.Dir(path), 0700); err != nil {
-		return nil, err
-	}
-	f, err := os.OpenFile(path, os.O_CREATE|os.O_RDWR, 0600)
+	path, err := filepath.Abs(path)
 	if err != nil {
 		return nil, err
 	}
-	f.Close()
-	db, err := sql.Open("sqlite", path)
+	parent := filepath.Dir(path)
+	if err := os.MkdirAll(parent, 0700); err != nil {
+		return nil, err
+	}
+	directory, err := os.Lstat(parent)
+	if err != nil {
+		return nil, err
+	}
+	owner, ok := directory.Sys().(*syscall.Stat_t)
+	if !ok || !directory.IsDir() || directory.Mode().Perm()&0022 != 0 || int(owner.Uid) != os.Geteuid() {
+		return nil, errors.New("database directory must be owned by this process user and not writable by other users")
+	}
+	if err := secureStateFile(path, true); err != nil {
+		return nil, err
+	}
+	for _, suffix := range []string{"-wal", "-shm", "-journal"} {
+		if err := secureStateFile(path+suffix, false); err != nil {
+			return nil, err
+		}
+	}
+	// Escape URI metacharacters so a filename cannot add SQLite DSN options.
+	dsn := (&url.URL{Scheme: "file", Path: path}).String()
+	db, err := sql.Open("sqlite", dsn)
 	if err != nil {
 		return nil, err
 	}

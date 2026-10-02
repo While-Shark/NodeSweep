@@ -19,7 +19,7 @@ func (e *Engine) scan(ctx context.Context, path string) (Scan, error) {
 	if err = noSymlinks(p); err != nil {
 		return out, err
 	}
-	root, err := os.OpenRoot(p)
+	root, err := openDirectory(p)
 	if err != nil {
 		return out, err
 	}
@@ -51,9 +51,12 @@ func (e *Engine) scan(ctx context.Context, path string) (Scan, error) {
 			out.Skipped++
 			return nil
 		}
-		i, er := d.Info()
+		i, er := root.Lstat(rel)
 		if er != nil {
 			out.Skipped++
+			return nil
+		}
+		if i.Mode()&os.ModeSymlink != 0 {
 			return nil
 		}
 		st := i.Sys().(*syscall.Stat_t)

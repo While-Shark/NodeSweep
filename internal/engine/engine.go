@@ -67,6 +67,9 @@ func noSymlinks(p string) error {
 func (e *Engine) Run(ctx context.Context, r Request) (any, error) {
 	e.mu.Lock()
 	defer e.mu.Unlock() // Bound disk I/O to one operation per agent.
+	if err := ValidateRequest(r); err != nil {
+		return nil, err
+	}
 	switch r.Kind {
 	case "scan":
 		return e.scan(ctx, r.Path)

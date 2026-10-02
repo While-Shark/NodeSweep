@@ -27,6 +27,7 @@ type Hub struct {
 	Context  context.Context
 	workers  sync.WaitGroup
 	stopping bool
+	polls    pollGate
 }
 
 func Hash(s string) string   { b := sha256.Sum256([]byte(s)); return hex.EncodeToString(b[:]) }
@@ -38,12 +39,19 @@ func reply(w http.ResponseWriter, v any) {
 	}
 }
 func fail(w http.ResponseWriter, err error, code int) {
+	if code >= 500 {
+		log.Printf("request failed: %v", err)
+		err = errors.New("internal server error")
+	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(code)
 	_ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
 }
 func decode(w http.ResponseWriter, r *http.Request, v any) error {
-	r.Body = http.MaxBytesReader(w, r.Body, 32<<20)
+	return decodeLimit(w, r, v, adminBodyLimit)
+}
+func decodeLimit(w http.ResponseWriter, r *http.Request, v any, limit int64) error {
+	r.Body = http.MaxBytesReader(w, r.Body, limit)
 	d := json.NewDecoder(r.Body)
 	d.DisallowUnknownFields()
 	if e := d.Decode(v); e != nil {
@@ -58,7 +66,8 @@ func (h *Hub) Handler(assets fs.FS) http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /agent/poll", h.poll)
 	mux.HandleFunc("/api/", func(w http.ResponseWriter, r *http.Request) {
-		if !equal(Hash(strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer ")), Hash(h.Token)) {
+		credential := bearer(r.Header.Get("Authorization"))
+		if len(h.Token) < 32 || credential == "" || !equal(Hash(credential), Hash(h.Token)) {
 			fail(w, errors.New("invalid administrator token"), 401)
 			return
 		}
@@ -70,7 +79,7 @@ func (h *Hub) Handler(assets fs.FS) http.Handler {
 		w.Header().Set("X-Frame-Options", "DENY")
 		w.Header().Set("Referrer-Policy", "no-referrer")
 		w.Header().Set("Cache-Control", "no-store")
-		w.Header().Set("Content-Security-Policy", "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'")
+		w.Header().Set("Content-Security-Policy", "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; object-src 'none'; form-action 'self'")
 		mux.ServeHTTP(w, r)
 	})
 }
@@ -153,7 +162,7 @@ func (h *Hub) api(w http.ResponseWriter, r *http.Request) {
 		// Transfer files are small configuration objects, not task result trees.
 		r.Body = http.MaxBytesReader(w, r.Body, 256<<10)
 		var bundle engine.RuleBundle
-		if e := decode(w, r, &bundle); e != nil {
+		if e := decodeLimit(w, r, &bundle, 256<<10); e != nil {
 			fail(w, e, 400)
 			return
 		}
@@ -232,10 +241,8 @@ func (h *Hub) api(w http.ResponseWriter, r *http.Request) {
 			fail(w, errors.New("node offline"), 409)
 			return
 		}
-		switch b.Request.Kind {
-		case "scan", "preview", "execute", "detect":
-		default:
-			fail(w, errors.New("unsupported operation"), 400)
+		if e := engine.ValidateRequest(b.Request); e != nil {
+			fail(w, e, 400)
 			return
 		}
 		if h.Store.Busy(b.Node) {
@@ -313,18 +320,30 @@ type Poll struct {
 
 func (h *Hub) poll(w http.ResponseWriter, r *http.Request) {
 	nodeID := r.Header.Get("X-Node-ID")
-	if nodeID == "" || nodeID == "local" || !equal(h.Store.Token(nodeID), Hash(strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer "))) {
+	credential := bearer(r.Header.Get("Authorization"))
+	if nodeID == "" || len(nodeID) > 64 || nodeID == "local" || credential == "" || !equal(h.Store.Token(nodeID), Hash(credential)) {
 		fail(w, errors.New("invalid node credentials"), 401)
 		return
 	}
 
+	release, ok := h.polls.enter(nodeID)
+	if !ok {
+		w.Header().Set("Retry-After", "5")
+		fail(w, errors.New("node poll rate exceeded"), 429)
+		return
+	}
+	defer release()
 	var b Poll
-	if e := decode(w, r, &b); e != nil {
+	if e := decodeLimit(w, r, &b, pollBodyLimit); e != nil {
 		fail(w, e, 400)
 		return
 	}
-	if b.Node != nodeID || b.Node == "local" || !equal(h.Store.Token(b.Node), Hash(strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer "))) {
+	if b.Node != nodeID || b.Node == "local" || !equal(h.Store.Token(b.Node), Hash(credential)) {
 		fail(w, errors.New("invalid node credentials"), 401)
+		return
+	}
+	if e := validatePoll(b); e != nil {
+		fail(w, e, 400)
 		return
 	}
 	h.mu.Lock()

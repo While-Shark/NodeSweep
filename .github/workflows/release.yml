@@ -1,14 +1,38 @@
-name: Release
+name: Publish
 on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [master]
   push:
     tags: ['v*']
+  schedule:
+    - cron: '17 2 * * *'
+  workflow_dispatch:
 permissions:
-  contents: write
+  contents: read
+concurrency:
+  group: nodesweep-publish
+  cancel-in-progress: false
 jobs:
-  release:
+  build:
+    if: >-
+      (github.event_name != 'workflow_run' &&
+       (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/v'))) ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event == 'push' &&
+       github.event.workflow_run.head_repository.full_name == github.repository &&
+       github.event.workflow_run.head_branch == 'master')
     runs-on: ubuntu-latest
+    outputs:
+      sha: ${{ steps.source.outputs.sha }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
+          persist-credentials: false
+      - id: source
+        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
@@ -16,30 +40,45 @@ jobs:
           cache-dependency-path: web/package-lock.json
       - uses: actions/setup-go@v5
         with:
-          go-version-file: go.mod
+          go-version: '1.27.x'
           cache: true
-      - run: npm ci && npm run build
+      - name: Verify frontend
         working-directory: web
-      - run: go test -race ./... && go vet ./...
-      - name: Build portable archives
-        shell: bash
+        run: npm ci && npm run format:check && npm test && npm audit --audit-level=low && npm run build
+      - name: Verify backend and publishing
         run: |
-          mkdir -p release
-          for arch in amd64 arm64; do
-            folder="release/nodesweep-linux-$arch"
-            mkdir -p "$folder/deploy"
-            CGO_ENABLED=0 GOOS=linux GOARCH="$arch" go build -trimpath -ldflags='-s -w' -o "$folder/nodesweep" ./cmd/nodesweep
-            cp install.sh README.md LICENSE "$folder/"
-            cp deploy/nodesweep.service "$folder/deploy/"
-            tar -C "$folder" -czf "release/nodesweep-linux-$arch.tar.gz" .
-          done
-          cd release
-          sha256sum *.tar.gz > SHA256SUMS
-      - name: Publish release
+          go test -race ./...
+          go vet ./...
+          test -z "$(gofmt -l cmd internal web/embed.go)"
+          go run golang.org/x/vuln/cmd/govulncheck@v1.8.0 ./...
+          python3 -m unittest discover -s scripts -p 'test_*.py'
+      - name: Package Linux amd64 and arm64
+        run: bash scripts/package.sh
+      - run: python3 scripts/smoke.py release/nodesweep-linux-amd64/nodesweep
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-assets
+          path: |
+            release/*.tar.gz
+            release/SHA256SUMS
+          if-no-files-found: error
+          retention-days: 7
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.build.outputs.sha }}
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: release-assets
+          path: release
+      - name: Publish checked archives
         env:
           GH_TOKEN: ${{ github.token }}
-        shell: bash
-        run: |
-          args=()
-          if [[ "$GITHUB_REF_NAME" == *-* ]]; then args+=(--prerelease); fi
-          gh release create "$GITHUB_REF_NAME" release/*.tar.gz release/SHA256SUMS --verify-tag --generate-notes "${args[@]}"
+          SOURCE_SHA: ${{ needs.build.outputs.sha }}
+        run: python3 scripts/publish.py

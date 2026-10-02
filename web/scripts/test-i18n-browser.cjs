@@ -72,7 +72,7 @@ const server = http.createServer((req, res) => {
       let executions = 0;
       const node = {
         id: "local",
-        name: "我的服务器",
+        name: "我的服务器 <img src=x onerror=window.__xss=1>",
         lastSeen: new Date().toISOString(),
         roots: ["/var/log"],
         scanRoots: ["/var/log"],
@@ -213,6 +213,13 @@ const server = http.createServer((req, res) => {
       assert.equal(
         await page.locator("header h1").innerText(),
         label(locale, "节点总览"),
+      );
+      assert.equal(await page.locator("main img").count(), 0);
+      assert.equal(await page.evaluate(() => window.__xss), undefined);
+      assert.ok(
+        (await page.locator("main").innerText()).includes(
+          "<img src=x onerror=window.__xss=1>",
+        ),
       );
       await page.locator("aside nav button").nth(1).click();
       await page

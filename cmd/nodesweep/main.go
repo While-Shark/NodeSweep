@@ -17,7 +17,6 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
-	"strings"
 	"sync"
 	"syscall"
 	"time"
@@ -36,6 +35,10 @@ type Config struct {
 	PanelRoots   []string `json:"panelRoots,omitempty"`
 }
 
+var version = "dev"
+var commit = "unknown"
+var builtAt = "unknown"
+
 func main() {
 	if err := run(); err != nil {
 		log.Fatal(err)
@@ -44,7 +47,12 @@ func main() {
 func run() error {
 	path := flag.String("config", "config.json", "configuration path")
 	init := flag.Bool("init", false, "write secure standalone configuration")
+	showVersion := flag.Bool("version", false, "print build version")
 	flag.Parse()
+	if *showVersion {
+		fmt.Printf("NodeSweep %s commit=%s built=%s\n", version, commit, builtAt)
+		return nil
+	}
 	if *init {
 		c := Config{Mode: "standalone", Listen: "127.0.0.1:9780", Data: "data/nodesweep.db", AdminToken: engine.ID() + engine.ID(), CleanupRoots: []string{"/var/log"}, ScanRoots: []string{"/"}}
 		b, err := json.MarshalIndent(c, "", "  ")
@@ -62,12 +70,8 @@ func run() error {
 		}
 		return err
 	}
-	b, err := os.ReadFile(*path)
+	c, err := readConfig(*path)
 	if err != nil {
-		return err
-	}
-	var c Config
-	if err = json.Unmarshal(b, &c); err != nil {
 		return err
 	}
 	if c.Mode != "standalone" && c.Mode != "hub" && c.Mode != "agent" {
@@ -100,12 +104,12 @@ func run() error {
 	e := engine.New(c.CleanupRoots, c.ScanRoots)
 	e.PanelRoots = c.PanelRoots
 	if c.Mode == "agent" {
-		if c.Node == "" || len(c.Token) < 32 {
+		if c.Node == "" || !validCredential(c.Token) {
 			return errors.New("node and strong token required")
 		}
 		return agent.Run(ctx, c.Hub, c.Node, c.Token, e)
 	}
-	if len(c.AdminToken) < 32 || strings.TrimSpace(c.AdminToken) != c.AdminToken {
+	if !validCredential(c.AdminToken) {
 		return errors.New("adminToken must contain at least 32 characters without outer whitespace")
 	}
 	if c.Listen == "" {

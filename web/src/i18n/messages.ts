@@ -760,5 +760,23 @@ export const messages = {
     "계획 파일이 유효한 JSON이 아닙니다.",
     "方案檔案不是有效的 JSON。",
   ],
+  "服务器内部错误，请查看服务端日志": [
+    "Internal server error; check server logs",
+    "サーバー内部エラーです。サーバーログを確認してください",
+    "서버 내부 오류입니다. 서버 로그를 확인하세요",
+    "伺服器內部錯誤，請查看服務端日誌",
+  ],
+  "预览标识无效，请重新预览": [
+    "Invalid preview identifier; create a new preview",
+    "プレビュー ID が無効です。再度プレビューしてください",
+    "미리보기 ID가 유효하지 않습니다. 다시 미리 보세요",
+    "預覽識別碼無效，請重新預覽",
+  ],
+  "节点请求过于频繁，请稍后重试": [
+    "Node requests are too frequent; retry later",
+    "ノードのリクエストが多すぎます。後で再試行してください",
+    "노드 요청이 너무 잦습니다. 잠시 후 다시 시도하세요",
+    "節點請求過於頻繁，請稍後重試",
+  ],
 } as const;
 export type MessageKey = keyof typeof messages;

@@ -63,7 +63,7 @@ func (e *Engine) preview(ctx context.Context, r Rule) (Plan, error) {
 	if err = noSymlinks(p); err != nil {
 		return plan, err
 	}
-	root, err := os.OpenRoot(p)
+	root, err := openDirectory(p)
 	if err != nil {
 		return plan, err
 	}
@@ -101,9 +101,12 @@ func (e *Engine) preview(ctx context.Context, r Rule) (Plan, error) {
 			}
 			return nil
 		}
-		i, err := d.Info()
+		i, err := root.Lstat(rel)
 		if err != nil {
 			return err
+		}
+		if i.Mode()&os.ModeSymlink != 0 {
+			return nil
 		}
 		st := i.Sys().(*syscall.Stat_t)
 		if st.Dev != dev {
@@ -158,7 +161,7 @@ func (e *Engine) execute(ctx context.Context, id string) (CleanupResult, error) 
 	if err = noSymlinks(path); err != nil {
 		return result, err
 	}
-	root, err := os.OpenRoot(path)
+	root, err := openDirectory(path)
 	if err != nil {
 		return result, err
 	}
@@ -185,7 +188,7 @@ func (e *Engine) execute(ctx context.Context, id string) (CleanupResult, error) 
 			result.Skipped = append(result.Skipped, c.Path+": changed or open")
 			continue
 		}
-		if err = removeVerified(root, c, e.inspectOpen); err != nil {
+		if err = removeVerified(root.Root, c, e.inspectOpen); err != nil {
 			result.Skipped = append(result.Skipped, c.Path+": "+err.Error())
 			continue
 		}

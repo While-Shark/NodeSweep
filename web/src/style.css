@@ -836,3 +836,19 @@ footer {
     overflow-wrap: anywhere;
   }
 }
+
+/* Node metadata can contain long unbroken names and paths. */
+.node-card,
+.node-card .toolbar > *,
+.node-metrics > * {
+  min-width: 0;
+}
+.node-card h3,
+.node-card .hint,
+.node-card .disk-line span,
+.node-metrics strong {
+  overflow-wrap: anywhere;
+}
+.node-card .status {
+  flex-shrink: 0;
+}
