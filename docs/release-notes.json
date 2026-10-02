@@ -1,35 +1,35 @@
 {
-  "version": "0.1.0-alpha.4",
+  "version": "0.1.0-alpha.5",
   "changes": {
     "en": [
-      "Fix batch selection leaking across node groups: switching groups clears selection, and submissions include only visible online nodes.",
-      "Limit checkbox selection to 20 nodes and show the selected online-node count.",
-      "Add Stop further submissions. The two submitted workers finish normally, remaining nodes show Not submitted, and no remote task is cancelled or replayed.",
-      "Add five-language browser regressions for group selection, two-worker queue stopping, leaving the page and mobile layouts."
+      "Isolate browser sessions: changing tokens or signing out aborts old requests and task polling; stale responses and errors cannot cross into a new session.",
+      "Prevent duplicate sign-in attempts and clear node selections, modal state, errors and the token field on sign-out. Node refreshes accept only the newest response.",
+      "Keep the latest selected task details when responses arrive out of order, and cancel task-history reads when leaving the page.",
+      "Add automated API cancellation tests and five-language browser checks for out-of-order task details and sign-out. Browser cancellation does not stop already submitted server tasks."
     ],
     "zh-CN": [
-      "修复批量操作跨分组保留勾选的问题：切换分组清空选择，仅向当前可见且在线的节点提交任务。",
-      "限制勾选最多 20 台，并显示已选择的在线节点数量。",
-      "加入停止后续提交：已提交的两个任务正常完成，其余节点显示未提交，不远程中止或重放任务。",
-      "新增五语浏览器回归，覆盖分组选择、双任务队列停止、离开页面和手机布局。"
+      "隔离浏览器会话：切换令牌或退出会取消旧请求和任务轮询，旧响应与错误不会进入新会话。",
+      "防止重复登录提交；退出时清空节点选择、弹窗、错误和令牌输入；节点刷新仅接收最新响应。",
+      "修复任务详情乱序覆盖，只展示最近选择的任务，离开页面时取消任务记录读取。",
+      "加入 API 取消测试与五语浏览器乱序详情、退出回归；浏览器取消不会停止服务器上已提交的任务。"
     ],
     "zh-TW": [
-      "修復批次操作跨分組保留勾選的問題：切換分組清空選擇，僅向目前可見且線上的節點提交任務。",
-      "限制勾選最多 20 台，並顯示已選擇的線上節點數量。",
-      "加入停止後續提交：已提交的兩個任務正常完成，其餘節點顯示未提交，不遠端中止或重播任務。",
-      "新增五語瀏覽器回歸，涵蓋分組選擇、雙任務佇列停止、離開頁面和手機版面。"
+      "隔離瀏覽器會話：切換權杖或登出會取消舊請求及任務輪詢，舊回應和錯誤不會進入新會話。",
+      "防止重複登入提交；登出時清空節點選擇、彈窗、錯誤及權杖輸入；節點更新只接收最新回應。",
+      "修復任務詳情亂序覆蓋，只顯示最近選擇的任務，離開頁面時取消任務紀錄讀取。",
+      "加入 API 取消測試及五語瀏覽器亂序詳情、登出回歸；瀏覽器取消不會停止伺服器上已提交的任務。"
     ],
     "ja": [
-      "グループを越えて選択が残る問題を修正。グループ変更で選択を解除し、表示中のオンラインノードだけに送信します。",
-      "チェックボックスの選択を最大20台に制限し、選択したオンラインノード数を表示します。",
-      "追加送信の停止を追加。送信済みの2タスクは完了を待ち、残りは未送信と表示します。遠隔タスクの中断や再実行はしません。",
-      "5言語のブラウザー回帰検証を追加。グループ選択、2ワーカーの送信停止、ページ離脱、モバイル表示を確認します。"
+      "ブラウザーのセッションを分離。トークン変更やログアウトで古いリクエストとタスクの確認を停止し、古い応答やエラーが新しいセッションへ入ることを防ぎます。",
+      "ログインの重複送信を防止。ログアウトでノード選択、ダイアログ、エラー、トークン入力を消去し、ノード更新は最新の応答だけを反映します。",
+      "タスク詳細の応答順による上書きを修正。最後に選択した詳細を表示し、ページ離脱時に履歴の読み取りを停止します。",
+      "APIキャンセルの自動検証と5言語の詳細応答順・ログアウトのブラウザー検証を追加。ブラウザーのキャンセルは送信済みのサーバータスクを停止しません。"
     ],
     "ko": [
-      "그룹 변경 후 선택이 남는 문제를 수정했습니다. 그룹을 변경하면 선택을 지우고 표시된 온라인 노드에만 제출합니다.",
-      "체크박스 선택을 최대 20개로 제한하고 선택한 온라인 노드 수를 표시합니다.",
-      "추가 제출 중지를 추가했습니다. 제출한 두 작업은 정상 완료되며 나머지는 제출되지 않음으로 표시합니다. 원격 작업을 중단하거나 재실행하지 않습니다.",
-      "그룹 선택, 두 작업 큐 중지, 페이지 이탈과 모바일 화면을 확인하는 5개 언어 브라우저 회귀 검증을 추가했습니다."
+      "브라우저 세션을 분리합니다. 토큰 변경이나 로그아웃 시 이전 요청과 작업 조회를 취소하여 이전 응답과 오류가 새 세션에 들어오지 않도록 합니다.",
+      "중복 로그인 제출을 방지합니다. 로그아웃 시 노드 선택, 대화상자, 오류와 토큰 입력을 지우고 노드 갱신에는 최신 응답만 반영합니다.",
+      "작업 상세 응답 순서로 덮어쓰는 문제를 수정했습니다. 마지막으로 선택한 작업만 표시하고 페이지를 떠날 때 작업 기록 읽기를 취소합니다.",
+      "API 취소 자동 검증과 5개 언어의 상세 응답 순서 및 로그아웃 브라우저 검증을 추가했습니다. 브라우저 취소는 서버에 이미 제출한 작업을 중지하지 않습니다."
     ]
   }
 }

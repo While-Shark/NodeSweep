@@ -1027,5 +1027,6 @@ export const messages = {
     "等待已提交任務完成，其餘節點不會提交。",
   ],
   未提交: ["Not submitted", "未送信", "제출되지 않음", "未提交"],
+  "登录中…": ["Signing in…", "ログイン中…", "로그인 중…", "登入中…"],
 } as const;
 export type MessageKey = keyof typeof messages;

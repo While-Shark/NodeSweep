@@ -1,29 +1,50 @@
 <script setup lang="ts">
 import { t, systemText, taskKind, taskStatus } from "../i18n";
-import { onMounted, ref } from "vue";
+import { onMounted, onUnmounted, ref } from "vue";
 import CleanupReport from "./CleanupReport.vue";
 import ReviewDetails from "./ReviewDetails.vue";
 import type { CleanupResult, Plan } from "../api";
 import { api, date, type Task } from "../api";
+const controller = new AbortController();
+onUnmounted(() => controller.abort());
+let loadGeneration = 0;
+let detailGeneration = 0;
 const tasks = ref<Task[]>([]);
 const error = ref("");
 const detail = ref("");
 const report = ref<CleanupResult>();
 const review = ref<Plan>();
 async function load() {
+  const generation = ++loadGeneration;
   try {
-    tasks.value = await api<Task[]>("tasks");
+    const updated = await api<Task[]>(
+      "tasks",
+      "GET",
+      undefined,
+      controller.signal,
+    );
+    if (generation !== loadGeneration) return;
+    tasks.value = updated;
+    error.value = "";
   } catch (e) {
-    error.value = (e as Error).message;
+    if (!controller.signal.aborted && generation === loadGeneration)
+      error.value = (e as Error).message;
   }
 }
 async function inspect(t: Task) {
+  const generation = ++detailGeneration;
   detail.value = "";
   report.value = undefined;
   review.value = undefined;
   error.value = "";
   try {
-    const data = await api<Task>("tasks/" + t.id);
+    const data = await api<Task>(
+      "tasks/" + t.id,
+      "GET",
+      undefined,
+      controller.signal,
+    );
+    if (generation !== detailGeneration) return;
     report.value =
       data.request.kind === "execute" && data.result
         ? (data.result as CleanupResult)
@@ -34,7 +55,8 @@ async function inspect(t: Task) {
         : undefined;
     detail.value = JSON.stringify(data, null, 2);
   } catch (e) {
-    error.value = (e as Error).message;
+    if (!controller.signal.aborted && generation === detailGeneration)
+      error.value = (e as Error).message;
   }
 }
 onMounted(load);

@@ -80,7 +80,10 @@ export interface Task {
   result?: unknown;
 }
 let token = "";
+let session = new AbortController();
 export function setToken(value: string) {
+  session.abort();
+  session = new AbortController();
   token = value;
 }
 export async function api<T>(
@@ -89,24 +92,36 @@ export async function api<T>(
   body?: unknown,
   signal?: AbortSignal,
 ): Promise<T> {
-  const response = await fetch("/api/" + path, {
-    method,
-    signal,
-    headers: {
-      Authorization: "Bearer " + token,
-      "Content-Type": "application/json",
-    },
-    body: body === undefined ? undefined : JSON.stringify(body),
-  });
-  const data = await response.json();
-  if (!response.ok) throw new Error(data.error || "请求失败");
-  return data;
+  const activeSignal = AbortSignal.any([
+    session.signal,
+    ...(signal ? [signal] : []),
+  ]);
+  activeSignal.throwIfAborted();
+  try {
+    const response = await fetch("/api/" + path, {
+      method,
+      signal: activeSignal,
+      headers: {
+        Authorization: "Bearer " + token,
+        "Content-Type": "application/json",
+      },
+      body: body === undefined ? undefined : JSON.stringify(body),
+    });
+    const data = await response.json();
+    activeSignal.throwIfAborted();
+    if (!response.ok) throw new Error(data.error || "请求失败");
+    return data;
+  } catch (error) {
+    activeSignal.throwIfAborted();
+    throw error;
+  }
 }
 export async function task<T>(
   node: string,
   request: unknown,
   signal?: AbortSignal,
 ): Promise<T> {
+  signal = AbortSignal.any([session.signal, ...(signal ? [signal] : [])]);
   const created = await api<Task>("tasks", "POST", { node, request }, signal);
   for (let i = 0; i < 130; i++) {
     await new Promise((r) => setTimeout(r, 1000));

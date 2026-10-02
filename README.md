@@ -64,6 +64,8 @@ Agents poll outbound every five seconds and keep reporting metrics during tasks.
 
 ## Cleanup safety
 
+Signing out clears the browser token and view state and cancels outstanding browser requests. Already submitted server tasks continue; check task history after signing in again.
+
 The default cleanup allowlist is `/var/log`. Add only verified log directories, such as BaoTa's `/www/wwwlogs` or `/www/server/panel/logs`, and restart the agent. Never allow a website root, database directory or all of `/opt`.
 
 Only old regular archives with one hard link and no detected open descriptors are candidates: compressed archives, numbered log rotations or validated Lumberjack timestamp archives. Active `.log` files, symlinks and cross-mount entries are skipped. Preview at most 5,000 candidates per rule; previews expire after ten minutes and cannot be replayed. Execution checks file identity again and uses a temporary quarantine step; quarantine is not a backup.
@@ -86,7 +88,7 @@ Release descriptions include reviewed change summaries in all five languages. Up
 
 ## Installation, reports and alerts
 
-Run `sudo bash install.sh --start` from an extracted bundle. To download a checked build, use `sudo bash install.sh --download v0.1.0-alpha.4 --start` (or `nightly` for testing). Upgrades preserve configuration, snapshot standard stopped state and restore the old binary if activation fails. `sudo bash install.sh --rollback` swaps binaries without restoring old database/configuration snapshots. Custom data paths require an operator backup; clean up obsolete snapshots after verification.
+Run `sudo bash install.sh --start` from an extracted bundle. To download a checked build, use `sudo bash install.sh --download v0.1.0-alpha.5 --start` (or `nightly` for testing). Upgrades preserve configuration, snapshot standard stopped state and restore the old binary if activation fails. `sudo bash install.sh --rollback` swaps binaries without restoring old database/configuration snapshots. Custom data paths require an operator backup; clean up obsolete snapshots after verification.
 
 Rule dry runs explain matching/exclusion decisions without creating an executable preview. Cleanup reports show file outcomes, allocated space and execution times, including partial failed tasks in task history. Allocated space is not net free-space growth.
 

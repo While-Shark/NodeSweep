@@ -102,6 +102,9 @@ const server = http.createServer((req, res) => {
       };
       let fixtureNodes = [node];
       const submitted = [];
+      let holdDetail = false,
+        releaseDetail,
+        notifyHeld;
       await page.route("**/api/**", async (route) => {
         const request = route.request();
         const url = new URL(request.url());
@@ -230,8 +233,16 @@ const server = http.createServer((req, res) => {
           return send({ id });
         }
         if (endpoint === "tasks") return send([...tasks.values()]);
-        if (endpoint.startsWith("tasks/"))
+        if (endpoint.startsWith("tasks/")) {
+          if (holdDetail && endpoint === "tasks/t1") {
+            await new Promise((resolve) => {
+              releaseDetail = resolve;
+              notifyHeld();
+            });
+            holdDetail = false;
+          }
           return send(tasks.get(endpoint.split("/")[1]));
+        }
         return send({ error: "unexpected fixture endpoint" }, 400);
       });
       await page.goto(base);
@@ -375,6 +386,28 @@ const server = http.createServer((req, res) => {
         (await page.locator("table").innerText()).includes(
           label(locale, "成功"),
         ),
+      );
+      holdDetail = true;
+      const heldDetail = new Promise((resolve) => {
+        notifyHeld = resolve;
+      });
+      await page.locator("table tbody button").nth(0).click();
+      await heldDetail;
+      await page.locator("table tbody button").nth(1).click();
+      await page.waitForFunction(() =>
+        document.querySelector(".detail")?.textContent.includes('"id": "t2"'),
+      );
+      const oldDetailResponse = page.waitForResponse((r) =>
+        r.url().endsWith("/api/tasks/t1"),
+      );
+      releaseDetail();
+      await oldDetailResponse;
+      await page.evaluate(
+        () => new Promise((resolve) => setTimeout(resolve, 0)),
+      );
+      assert.equal(
+        JSON.parse(await page.locator(".detail").innerText()).id,
+        "t2",
       );
       await page
         .getByRole("button", { name: label(locale, "添加节点"), exact: false })
@@ -558,6 +591,13 @@ const server = http.createServer((req, res) => {
           assert.equal(overflow, false, locale + " page " + i + " at " + width);
         }
       }
+      await page.setViewportSize({ width: 1280, height: 900 });
+      await page
+        .getByRole("button", { name: label(locale, "退出登录"), exact: true })
+        .click();
+      await page.locator(".login").waitFor();
+      assert.equal(await page.locator(".error").count(), 0);
+      assert.equal(await page.locator("input[type=password]").inputValue(), "");
       await page.reload();
       await page.locator(".login").waitFor();
       assert.equal(await page.locator("html").getAttribute("lang"), locale); // Saved preference.

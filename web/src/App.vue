@@ -11,6 +11,9 @@ import EnrollNode from "./components/EnrollNode.vue";
 import AlertsPanel from "./components/AlertsPanel.vue";
 import TaskHistory from "./components/TaskHistory.vue";
 const logged = ref(false);
+const loggingIn = ref(false);
+let authGeneration = 0;
+let reloadGeneration = 0;
 const password = ref("");
 const nodes = ref<Node[]>([]);
 const selected = ref("");
@@ -23,26 +26,49 @@ const current = computed(() =>
 );
 let timer: ReturnType<typeof setInterval> | undefined;
 async function reload() {
-  nodes.value = await api<Node[]>("nodes");
+  const generation = ++reloadGeneration;
+  const updated = await api<Node[]>("nodes");
+  if (generation !== reloadGeneration) return;
+  nodes.value = updated;
   if (!current.value) selected.value = nodes.value[0]?.id || "";
 }
 async function login() {
+  if (loggingIn.value) return;
+  const generation = ++authGeneration;
+  loggingIn.value = true;
   error.value = "";
   setToken(password.value);
   try {
     await reload();
+    if (generation !== authGeneration) return;
     logged.value = true;
     password.value = "";
     timer = setInterval(
-      () => reload().catch((e) => (error.value = e.message)),
+      () =>
+        reload().catch((e) => {
+          if (logged.value && e.name !== "AbortError") error.value = e.message;
+        }),
       5000,
     );
   } catch (e) {
-    error.value = (e as Error).message;
+    if (generation === authGeneration) {
+      setToken("");
+      error.value = (e as Error).message;
+    }
+  } finally {
+    if (generation === authGeneration) loggingIn.value = false;
   }
 }
 function logout() {
+  ++authGeneration;
+  ++reloadGeneration;
   clearInterval(timer);
+  timer = undefined;
+  loggingIn.value = false;
+  enrolling.value = false;
+  revoking.value = false;
+  password.value = "";
+  error.value = "";
   setToken("");
   logged.value = false;
   nodes.value = [];
@@ -55,15 +81,18 @@ function select(id: string) {
 }
 async function revoke() {
   if (!current.value) return;
+  const generation = authGeneration;
   try {
     await api("nodes/" + current.value.id, "DELETE");
+    if (generation !== authGeneration) return;
     revoking.value = false;
     await reload();
   } catch (e) {
-    error.value = (e as Error).message;
+    if (generation === authGeneration && logged.value)
+      error.value = (e as Error).message;
   }
 }
-onUnmounted(() => clearInterval(timer));
+onUnmounted(logout);
 </script>
 <template>
   <div v-if="!logged" class="login-page">
@@ -82,7 +111,8 @@ onUnmounted(() => clearInterval(timer));
           :placeholder="t('配置文件中的 adminToken')"
       /></label>
       <p v-if="error" class="error" role="alert">{{ systemText(error) }}</p>
-      <button class="primary">{{ t("进入控制台 →") }}</button
+      <button class="primary" :disabled="loggingIn">
+        {{ loggingIn ? t("登录中…") : t("进入控制台 →") }}</button
       ><small>{{ t("轻量部署 · 多节点管理 · 按规则清理") }}</small>
     </form>
   </div>
