@@ -752,3 +752,37 @@ footer {
     transition: none !important;
   }
 }
+
+.rule-transfer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.rule-transfer h3 {
+  margin-bottom: 6px;
+}
+.rule-transfer p {
+  margin: 0;
+}
+.rule-transfer .error {
+  flex-basis: 100%;
+}
+.rule-transfer input[hidden] {
+  display: none;
+}
+.rule-transfer .toolbar {
+  flex-wrap: wrap;
+}
+.rule-transfer select {
+  min-width: 180px;
+}
+@media (max-width: 680px) {
+  .rule-transfer .toolbar {
+    width: 100%;
+  }
+  .rule-transfer label {
+    flex-basis: 100%;
+  }
+}

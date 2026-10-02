@@ -13,6 +13,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -27,6 +28,8 @@ func Run(ctx context.Context, address, node, token string, e *engine.Engine) err
 	client := &http.Client{Timeout: 20 * time.Second, CheckRedirect: func(_ *http.Request, _ []*http.Request) error { return http.ErrUseLastResponse }}
 	sampler := engine.Sampler{}
 	done := make(chan engine.Task, 1)
+	var worker sync.WaitGroup
+	defer worker.Wait()
 	var pending *engine.Task
 	busy := false
 	for {
@@ -65,7 +68,9 @@ func Run(ctx context.Context, address, node, token string, e *engine.Engine) err
 				if msg.Task != nil && !busy {
 					busy = true
 					t := *msg.Task
+					worker.Add(1)
 					go func() {
+						defer worker.Done()
 						work, cancel := context.WithTimeout(ctx, 90*time.Second)
 						defer cancel()
 						result, runErr := e.Run(work, t.Request)

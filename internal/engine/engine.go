@@ -16,6 +16,7 @@ type Engine struct {
 	inspectOpen func() (map[[2]uint64]bool, error)
 	Roots       []string
 	ScanRoots   []string
+	PanelRoots  []string
 	mu          sync.Mutex
 	plans       map[string]Plan
 }
@@ -74,12 +75,19 @@ func (e *Engine) Run(ctx context.Context, r Request) (any, error) {
 	case "execute":
 		return e.execute(ctx, r.PlanID)
 	case "detect":
-		return Detect(), nil
+		return e.detect(), nil
 	default:
 		return nil, fmt.Errorf("unknown operation %q", r.Kind)
 	}
 }
 func ValidateRule(r Rule) error {
+	if !filepath.IsAbs(r.Root) || len(r.Root) > 4096 || strings.ContainsRune(r.Root, 0) {
+		return errors.New("rule root must be an absolute path, max 4096 characters")
+	}
+	if filepath.Clean(r.Root) == "/" {
+		return errors.New("filesystem root cannot be a cleanup root")
+	}
+
 	if len(r.Scheme) > 100 {
 		return errors.New("scheme name too long")
 	}
@@ -93,6 +101,9 @@ func ValidateRule(r Rule) error {
 		return errors.New("provide 1–20 filename patterns and at most 50 exclusions")
 	}
 	for _, p := range append(append([]string{}, r.Patterns...), r.Excludes...) {
+		if p == "" || len(p) > 255 || strings.ContainsRune(p, 0) {
+			return errors.New("filename patterns must contain 1–255 characters")
+		}
 		if strings.Contains(p, "/") {
 			return errors.New("patterns match filenames, not paths")
 		}

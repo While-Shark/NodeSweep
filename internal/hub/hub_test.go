@@ -2,6 +2,7 @@ package hub
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"github.com/While-Shark/NodeSweep/internal/engine"
 	"github.com/While-Shark/NodeSweep/internal/store"
@@ -64,7 +65,7 @@ func TestAuthenticationAndNodeIsolation(t *testing.T) {
 		t.Fatal(code, string(data))
 	}
 	task := engine.Task{ID: engine.ID(), Node: created.Node.ID, Status: "pending", Created: time.Now(), Request: engine.Request{Kind: "detect"}}
-	if err = s.SaveTask(task); err != nil {
+	if err = s.CreateTask(task); err != nil {
 		t.Fatal(err)
 	}
 	code, data = request("POST", "/agent/poll", created.Token, Poll{Node: created.Node.ID})
@@ -86,5 +87,87 @@ func TestAuthenticationAndNodeIsolation(t *testing.T) {
 	}
 	if code, _ = request("POST", "/agent/poll", created.Token, Poll{Node: created.Node.ID}); code != 401 {
 		t.Fatal("revoked token accepted")
+	}
+}
+
+func TestRuleTransferEndpoints(t *testing.T) {
+	s, err := store.Open(filepath.Join(t.TempDir(), "state.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.DB.Close()
+	h := &Hub{Store: s, Token: strings.Repeat("b", 64)}
+	handler := h.Handler(fstest.MapFS{"index.html": {Data: []byte("hello")}})
+	call := func(method, path, token string, body any) *httptest.ResponseRecorder {
+		raw, _ := json.Marshal(body)
+		req := httptest.NewRequest(method, path, bytes.NewReader(raw))
+		req.Header.Set("Authorization", "Bearer "+token)
+		res := httptest.NewRecorder()
+		handler.ServeHTTP(res, req)
+		return res
+	}
+	r := engine.Rule{ID: "from-file", Name: "history", Scheme: "shared", Root: "/var/log/app", KeepDays: 14, Patterns: []string{"*.log.*"}}
+	b := engine.RuleBundle{Format: engine.BundleFormat, Version: engine.BundleVersion, Rules: []engine.Rule{r}}
+	if res := call("POST", "/api/rules/import", "invalid", b); res.Code != 401 {
+		t.Fatal(res.Code)
+	}
+	if res := call("POST", "/api/rules/import", h.Token, b); res.Code != 200 {
+		t.Fatal(res.Code, res.Body.String())
+	}
+	res := call("GET", "/api/rules/export", h.Token, nil)
+	if res.Code != 200 {
+		t.Fatal(res.Code)
+	}
+	var exported engine.RuleBundle
+	if err = json.Unmarshal(res.Body.Bytes(), &exported); err != nil {
+		t.Fatal(err)
+	}
+	if exported.Format != engine.BundleFormat || len(exported.Rules) != 1 || exported.Rules[0].ID != "" {
+		t.Fatal(exported)
+	}
+	if res = call("POST", "/api/rules/import", h.Token, exported); res.Code != 200 || !strings.Contains(res.Body.String(), `"skipped":1`) {
+		t.Fatal(res.Code, res.Body.String())
+	}
+	before, _ := s.Rules()
+	b.Rules[0].Name = strings.Repeat("x", 300000)
+	if res = call("POST", "/api/rules/import", h.Token, b); res.Code != 400 {
+		t.Fatal("oversized bundle accepted", res.Code)
+	}
+	after, _ := s.Rules()
+	if len(before) != len(after) {
+		t.Fatal("oversized bundle changed rules")
+	}
+}
+
+func TestShutdownDrainsCancelledLocalTask(t *testing.T) {
+	s, err := store.Open(filepath.Join(t.TempDir(), "state.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.DB.Close()
+	root := t.TempDir()
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	h := &Hub{Store: s, Token: strings.Repeat("c", 64), Context: ctx, Engine: engine.New(nil, []string{root})}
+	task := engine.Task{ID: "local-work", Node: "local", Status: "pending", Created: time.Now(), Request: engine.Request{Kind: "scan", Path: root}}
+	if err = s.CreateTask(task); err != nil {
+		t.Fatal(err)
+	}
+	h.workers.Add(1)
+	go h.localTask(task)
+	h.Wait()
+	got, err := s.Task(task.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Status != "failed" || !strings.Contains(got.Error, "context canceled") {
+		t.Fatalf("did not drain task: %+v", got)
+	}
+	req := httptest.NewRequest("POST", "/api/tasks", strings.NewReader(`{"node":"local","request":{"kind":"detect"}}`))
+	req.Header.Set("Authorization", "Bearer "+h.Token)
+	res := httptest.NewRecorder()
+	h.Handler(fstest.MapFS{"index.html": {Data: []byte("hello")}}).ServeHTTP(res, req)
+	if res.Code != 503 {
+		t.Fatal("accepted new task during shutdown", res.Code)
 	}
 }

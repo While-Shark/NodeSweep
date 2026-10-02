@@ -12,6 +12,7 @@ A lightweight Linux server dashboard with multi-node monitoring, drill-down disk
 - CPU, memory, load, disk capacity and inode metrics.
 - Allocated-space treemap with directory drill-down and file table.
 - Named cleanup schemes containing multiple reusable rules.
+- JSON scheme import/export with transactional validation and duplicate skipping.
 - Common Linux, Nginx, BaoTa and 1Panel directory presets.
 - Agent-local allowlists, short-lived previews, open-file checks and identity verification.
 - SQLite-backed task history; no external database or message broker.

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
 import { api, task, size, type Rule, type Node, type Plan } from "../api";
+import RuleTransfer from "./RuleTransfer.vue";
 const props = defineProps<{ node: Node }>();
 const rules = ref<Rule[]>([]);
 const busy = ref(false);
@@ -42,6 +43,17 @@ async function action(fn: () => Promise<void>) {
   } finally {
     busy.value = false;
   }
+}
+async function importBundle(bundle: unknown) {
+  await action(async () => {
+    const result = await api<{ added: number; skipped: number }>(
+      "rules/import",
+      "POST",
+      bundle,
+    );
+    await reload();
+    notice.value = `已导入 ${result.added} 条规则，跳过 ${result.skipped} 条重复规则。执行前请在目标节点重新预览。`;
+  });
 }
 async function save() {
   await action(async () => {
@@ -155,6 +167,12 @@ onMounted(() => action(reload));
         </button>
       </div>
     </div>
+    <RuleTransfer
+      :disabled="busy"
+      :has-rules="rules.length > 0"
+      :schemes="schemes.map(([name]) => name)"
+      @import="importBundle"
+    />
     <div class="rule-layout">
       <div>
         <div v-for="[scheme, group] in schemes" :key="scheme" class="card">

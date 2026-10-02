@@ -20,10 +20,13 @@ import (
 )
 
 type Hub struct {
-	Store  *store.Store
-	Engine *engine.Engine
-	Token  string
-	mu     sync.Mutex
+	Store    *store.Store
+	Engine   *engine.Engine
+	Token    string
+	mu       sync.Mutex
+	Context  context.Context
+	workers  sync.WaitGroup
+	stopping bool
 }
 
 func Hash(s string) string   { b := sha256.Sum256([]byte(s)); return hex.EncodeToString(b[:]) }
@@ -101,11 +104,65 @@ func (h *Hub) api(w http.ResponseWriter, r *http.Request) {
 		}
 		reply(w, map[string]any{"node": n, "token": token})
 	case strings.HasPrefix(p, "nodes/") && r.Method == "DELETE":
+		h.mu.Lock()
+		defer h.mu.Unlock()
 		if e := h.Store.DeleteNode(strings.TrimPrefix(p, "nodes/")); e != nil {
 			fail(w, e, 400)
 			return
 		}
 		reply(w, map[string]bool{"ok": true})
+	case p == "rules/export" && r.Method == "GET":
+		rules, e := h.Store.Rules()
+		if e != nil {
+			fail(w, e, 500)
+			return
+		}
+		if scheme := r.URL.Query().Get("scheme"); scheme != "" {
+			filtered := []engine.Rule{}
+			for _, rule := range rules {
+				name := rule.Scheme
+				if name == "" {
+					name = "默认方案"
+				}
+				if name == scheme {
+					filtered = append(filtered, rule)
+				}
+			}
+			rules = filtered
+		}
+		bundle := engine.RuleBundle{Format: engine.BundleFormat, Version: engine.BundleVersion, Rules: rules}
+		if e = bundle.Validate(); e != nil {
+			fail(w, errors.New("export requires 1–100 rules; select a smaller scheme"), 400)
+			return
+		}
+		for i := range bundle.Rules {
+			bundle.Rules[i].ID = ""
+		}
+		encoded, e := json.MarshalIndent(bundle, "", "  ")
+		if e != nil {
+			fail(w, e, 500)
+			return
+		}
+		if len(encoded)+1 > 256<<10 {
+			fail(w, errors.New("export exceeds file size limit; select a smaller scheme"), 400)
+			return
+		}
+		reply(w, bundle)
+
+	case p == "rules/import" && r.Method == "POST":
+		// Transfer files are small configuration objects, not task result trees.
+		r.Body = http.MaxBytesReader(w, r.Body, 256<<10)
+		var bundle engine.RuleBundle
+		if e := decode(w, r, &bundle); e != nil {
+			fail(w, e, 400)
+			return
+		}
+		result, e := h.Store.ImportRules(bundle)
+		if e != nil {
+			fail(w, e, 400)
+			return
+		}
+		reply(w, result)
 	case p == "rules" && r.Method == "GET":
 		v, e := h.Store.Rules()
 		if e != nil {
@@ -162,6 +219,10 @@ func (h *Hub) api(w http.ResponseWriter, r *http.Request) {
 		}
 		h.mu.Lock()
 		defer h.mu.Unlock()
+		if h.stopping || h.workContext().Err() != nil {
+			fail(w, errors.New("server shutting down"), 503)
+			return
+		}
 		n, e := h.Store.Node(b.Node)
 		if e != nil {
 			fail(w, errors.New("node not found"), 404)
@@ -182,11 +243,12 @@ func (h *Hub) api(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		t := engine.Task{ID: engine.ID(), Node: b.Node, Request: b.Request, Status: "pending", Created: time.Now()}
-		if e = h.Store.SaveTask(t); e != nil {
+		if e = h.Store.CreateTask(t); e != nil {
 			fail(w, e, 500)
 			return
 		}
 		if b.Node == "local" && h.Engine != nil {
+			h.workers.Add(1)
 			go h.localTask(t)
 		}
 		reply(w, t)
@@ -195,21 +257,24 @@ func (h *Hub) api(w http.ResponseWriter, r *http.Request) {
 	}
 }
 func (h *Hub) localTask(t engine.Task) {
-	t.Status = "running"
-	if err := h.Store.SaveTask(t); err != nil {
+	defer h.workers.Done()
+	claimed, err := h.Store.Claim(t.ID, t.Node)
+	if err != nil {
 		log.Print(err)
 		return
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
+	if claimed == nil {
+		return
+	}
+	ctx, cancel := context.WithTimeout(h.workContext(), 90*time.Second)
 	defer cancel()
-	result, err := h.Engine.Run(ctx, t.Request)
-	t.Result = result
+	t.Result, err = h.Engine.Run(ctx, t.Request)
 	t.Status = "succeeded"
 	if err != nil {
 		t.Status = "failed"
 		t.Error = err.Error()
 	}
-	if err = h.Store.SaveTask(t); err != nil {
+	if err = h.Store.Complete(t); err != nil {
 		log.Print(err)
 	}
 }
@@ -278,27 +343,16 @@ func (h *Hub) poll(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if b.Result != nil {
-		original, e := h.Store.Task(b.Result.ID)
-		if e != nil || original.Node != b.Node {
-			fail(w, errors.New("task ownership mismatch"), 400)
+		completion := *b.Result
+		completion.Node = b.Node // Never trust a node identity embedded in a result.
+		if e = h.Store.Complete(completion); e != nil {
+			fail(w, e, 400)
 			return
 		}
-		if original.Status == "running" || original.Status == "interrupted" {
-			original.Result = b.Result.Result
-			original.Error = b.Result.Error
-			original.Status = b.Result.Status
-			if original.Status != "succeeded" && original.Status != "failed" {
-				fail(w, errors.New("invalid completion status"), 400)
-				return
-			}
-			if e = h.Store.SaveTask(original); e != nil {
-				fail(w, e, 500)
-				return
-			}
-		}
 	}
+
 	var task *engine.Task
-	if !b.Busy {
+	if !b.Busy && h.workContext().Err() == nil {
 		task, e = h.Store.Next(b.Node)
 		if e != nil {
 			fail(w, e, 500)
@@ -307,3 +361,13 @@ func (h *Hub) poll(w http.ResponseWriter, r *http.Request) {
 	}
 	reply(w, map[string]any{"task": task})
 }
+
+func (h *Hub) workContext() context.Context {
+	if h.Context != nil {
+		return h.Context
+	}
+	return context.Background()
+}
+
+// Stop admission before waiting so Add and Wait cannot race during shutdown.
+func (h *Hub) Wait() { h.mu.Lock(); h.stopping = true; h.mu.Unlock(); h.workers.Wait() }

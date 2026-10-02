@@ -18,6 +18,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 )
@@ -32,6 +33,7 @@ type Config struct {
 	Token        string   `json:"token"`
 	CleanupRoots []string `json:"cleanupRoots"`
 	ScanRoots    []string `json:"scanRoots"`
+	PanelRoots   []string `json:"panelRoots,omitempty"`
 }
 
 func main() {
@@ -82,9 +84,21 @@ func run() error {
 			return fmt.Errorf("unsafe cleanup root: %s", p)
 		}
 	}
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	if len(c.PanelRoots) > 16 {
+		return errors.New("at most 16 panelRoots allowed")
+	}
+	for _, p := range c.PanelRoots {
+		if !filepath.IsAbs(p) || filepath.Clean(p) == "/" {
+			return errors.New("panelRoots must be absolute panel installation directories")
+		}
+	}
+
+	signalCtx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	ctx, cancelWork := context.WithCancel(signalCtx)
+	defer cancelWork()
 	defer stop()
 	e := engine.New(c.CleanupRoots, c.ScanRoots)
+	e.PanelRoots = c.PanelRoots
 	if c.Mode == "agent" {
 		if c.Node == "" || len(c.Token) < 32 {
 			return errors.New("node and strong token required")
@@ -105,23 +119,30 @@ func run() error {
 		return err
 	}
 	defer s.DB.Close()
-	h := &hub.Hub{Store: s, Token: c.AdminToken}
+	h := &hub.Hub{Store: s, Token: c.AdminToken, Context: ctx}
+	var background sync.WaitGroup
+	defer func() { cancelWork(); h.Wait(); background.Wait() }()
 	if c.Mode == "standalone" {
 		h.Engine = e
-		go h.LocalMetrics(ctx)
+		background.Add(1)
+		go func() { defer background.Done(); h.LocalMetrics(ctx) }()
 	}
 	assets, err := fs.Sub(web.Assets, "dist")
 	if err != nil {
 		return err
 	}
 	server := &http.Server{Addr: c.Listen, Handler: h.Handler(assets), ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 40 * time.Second, WriteTimeout: 40 * time.Second, IdleTimeout: 60 * time.Second, MaxHeaderBytes: 16 << 10}
+	serverFinished := make(chan struct{})
 	go func() {
+		defer close(serverFinished)
 		<-ctx.Done()
 		shutdown, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 		_ = server.Shutdown(shutdown)
 	}()
+	background.Add(1)
 	go func() {
+		defer background.Done()
 		ticker := time.NewTicker(time.Minute)
 		defer ticker.Stop()
 		for {
@@ -143,6 +164,8 @@ func run() error {
 	}()
 	log.Printf("NodeSweep %s listening on %s", c.Mode, c.Listen)
 	err = server.ListenAndServe()
+	cancelWork()
+	<-serverFinished
 	if errors.Is(err, http.ErrServerClosed) {
 		return nil
 	}

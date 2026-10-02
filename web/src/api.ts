@@ -85,7 +85,11 @@ export async function task<T>(node: string, request: unknown): Promise<T> {
   for (let i = 0; i < 130; i++) {
     await new Promise((r) => setTimeout(r, 1000));
     const current = await api<Task & { result: T }>("tasks/" + created.id);
-    if (current.status === "succeeded") return current.result;
+    if (current.status === "succeeded") {
+      if (current.result == null)
+        throw new Error("任务结果已过期，请重新扫描或预览。");
+      return current.result;
+    }
     if (["failed", "interrupted"].includes(current.status))
       throw new Error(current.error || "任务失败");
   }
