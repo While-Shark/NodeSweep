@@ -6,8 +6,10 @@ version=$(tr -d '\n\r' < VERSION)
 commit=$(git rev-parse HEAD)
 built_at=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 mkdir -p release
+staging=$(mktemp -d)
+trap 'rm -rf -- "$staging"' EXIT
 for arch in amd64 arm64; do
-  folder="release/nodesweep-linux-$arch"
+  folder="$staging/nodesweep-linux-$arch"
   mkdir -p "$folder/deploy" "$folder/docs"
   CGO_ENABLED=0 GOOS=linux GOARCH="$arch" go build -trimpath \
     -ldflags="-s -w -X main.version=$version -X main.commit=$commit -X main.builtAt=$built_at" \

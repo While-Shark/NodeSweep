@@ -54,7 +54,12 @@ jobs:
           python3 -m unittest discover -s scripts -p 'test_*.py'
       - name: Package Linux amd64 and arm64
         run: bash scripts/package.sh
-      - run: python3 scripts/smoke.py release/nodesweep-linux-amd64/nodesweep
+      - name: Smoke test packaged binary
+        run: |
+          folder=$(mktemp -d)
+          trap 'rm -rf -- "$folder"' EXIT
+          tar -xzf release/nodesweep-linux-amd64.tar.gz -C "$folder"
+          python3 scripts/smoke.py "$folder/nodesweep"
       - uses: actions/upload-artifact@v4
         with:
           name: release-assets
