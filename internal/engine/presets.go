@@ -39,7 +39,11 @@ func detectPresets(fsys fs.FS, panelRoots []string) []Preset {
 		{"宝塔网站日志", "/www/wwwlogs"}, {"宝塔面板日志", "/www/server/panel/logs"},
 		{"1Panel 日志", "/opt/1panel/log"},
 	} {
-		add(x.name, x.path, "仅处理过期归档；清理前须在节点白名单允许该目录", []string{"*.log.*", "*.gz"}, []string{"journal", "audit"})
+		patterns := []string{"*.log.*", "*.gz"}
+		if x.name == "1Panel 日志" {
+			patterns = append(patterns, timestampLogPattern)
+		}
+		add(x.name, x.path, "仅处理过期归档；清理前须在节点白名单允许该目录", patterns, []string{"journal", "audit"})
 	}
 	for _, path := range []string{"/usr/local/bin/1pctl", "/usr/bin/1pctl"} {
 		data, ok := readDetectionFile(fsys, path)
@@ -48,7 +52,7 @@ func detectPresets(fsys fs.FS, panelRoots []string) []Preset {
 		}
 		base := panelBase(data)
 		if base != "" {
-			add("1Panel 日志", filepath.Join(base, "1panel/log"), "从 1pctl 的静态 BASE_DIR 识别；未执行脚本", []string{"*.log.*", "*.gz"}, nil)
+			add("1Panel 日志", filepath.Join(base, "1panel/log"), "从 1pctl 的静态 BASE_DIR 识别；未执行脚本", []string{"*.log.*", "*.gz", timestampLogPattern}, nil)
 		}
 	}
 	roots := append([]string{"/www/server/panel"}, panelRoots...)

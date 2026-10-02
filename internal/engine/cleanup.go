@@ -141,25 +141,6 @@ func (e *Engine) preview(ctx context.Context, r Rule) (Plan, error) {
 	e.plans[plan.ID] = plan
 	return plan, nil
 }
-func archived(name string) bool {
-	if strings.HasSuffix(name, ".gz") || strings.HasSuffix(name, ".xz") || strings.HasSuffix(name, ".bz2") {
-		return true
-	}
-	idx := strings.LastIndex(name, ".log.")
-	if idx < 0 {
-		return false
-	}
-	suffix := name[idx+5:]
-	if suffix == "" {
-		return false
-	}
-	for _, r := range suffix {
-		if (r < '0' || r > '9') && r != '-' {
-			return false
-		}
-	}
-	return true
-}
 func (e *Engine) execute(ctx context.Context, id string) (CleanupResult, error) {
 	result := CleanupResult{Skipped: []string{}}
 	p, ok := e.plans[id]

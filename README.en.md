@@ -13,11 +13,12 @@ A lightweight Linux server dashboard with multi-node monitoring, drill-down disk
 - Allocated-space treemap with directory drill-down and file table.
 - Named cleanup schemes containing multiple reusable rules.
 - JSON scheme import/export with transactional validation and duplicate skipping.
-- Common Linux, Nginx, BaoTa and 1Panel directory presets.
+- Linux/Nginx presets, static 1Panel installation discovery and BaoTa site log discovery.
+- Timestamp archives in the Lumberjack naming format, with calendar validation.
 - Agent-local allowlists, short-lived previews, open-file checks and identity verification.
 - SQLite-backed task history; no external database or message broker.
 
-This release only removes eligible expired archives. Scheduled cleanup, metrics history, journal/Docker-native rotation, and automatic custom-panel path discovery are planned. The current UI is Chinese; English UI is planned.
+This release only removes eligible expired archives. Scheduled cleanup, metrics history, journal/Docker-native rotation are planned. The current UI is Chinese; English UI is planned.
 
 ## Run
 
