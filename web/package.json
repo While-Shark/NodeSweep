@@ -6,8 +6,10 @@
   "scripts": {
     "dev": "vite --host 127.0.0.1",
     "build": "vue-tsc --noEmit && vite build",
-    "format": "prettier --write src vite.config.ts",
-    "format:check": "prettier --check src vite.config.ts"
+    "format": "prettier --write src scripts vite.config.ts",
+    "format:check": "prettier --check src scripts vite.config.ts",
+    "test": "node scripts/test-i18n.mjs",
+    "test:browser": "node scripts/test-i18n-browser.cjs"
   },
   "dependencies": {
     "d3-hierarchy": "^3.1.2",

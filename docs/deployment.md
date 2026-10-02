@@ -110,3 +110,20 @@ Agent 使用短轮询，不需要 WebSocket。端口 9780 可修改；无需修�
 解析依据：[1Panel 安装器的 1pctl](https://github.com/1Panel-dev/installer/blob/v2/1pctl)，以及宝塔的 Nginx 站点配置。尚需在真实面板版本和 VPS 上验证，不能把配置夹具测试视作实机兼容性认证。
 
 时间戳归档格式参考：[Lumberjack 官方源码](https://github.com/natefinch/lumberjack/blob/v2.0/lumberjack.go)。这项兼容的是文件命名格式，不能单凭该格式证明文件已停用；占用检查和管理员确认仍然必要。
+
+## 界面语言与翻译维护
+
+登录页与控制台右上角的语言菜单支持 `zh-CN`、`en`、`ja`、`ko`、`zh-TW`。首次优先匹配浏览器语言；不支持的语言回退简体中文。手动选择保存为浏览器的 `nodesweep.language`，不向节点传播，也不保存登录令牌。禁用本地存储时仍能切换，但刷新后按浏览器语言重新选择。
+
+翻译表位于 `web/src/i18n/messages.ts`，每条文案对应英、日、韩、繁体四列，简体中文使用原始键。参数通过 `{name}` 等占位符插入，并由 Vue 按普通文本渲染。增加或修改文案后运行：
+
+```bash
+cd web
+npm test
+npm run format:check
+npm run build
+```
+
+CI 会检查五种语言的条目、占位符和语言回退。浏览器回归脚本使用 API 夹具验证界面流程，不操作实际日志目录；开发环境安装 Playwright 及 Chromium 后可运行 `npm run test:browser`，也可使用 `PLAYWRIGHT_MODULE` / `CHROMIUM_EXECUTABLE_PATH` 指定现有安装。脚本检查五种语言的登录、扫描、预览确认、导出、节点接入、偏好保存和 360/390px 布局。
+
+用户保存的节点、规则、方案名称以及路径、导出 JSON 不自动翻译；环境识别的预设说明和常见 API 错误在展示时翻译。未知系统错误、任务详情 JSON 保留原文，便于定位问题。

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { t } from "../i18n";
 import { computed } from "vue";
 import { hierarchy, treemap, treemapSquarify } from "d3-hierarchy";
 import type { Entry } from "../api";
@@ -32,7 +33,7 @@ const colors = [
 ];
 </script>
 <template>
-  <div class="treemap" aria-label="目录占用矩形树图">
+  <div class="treemap" :aria-label="t('目录占用矩形树图')">
     <button
       v-for="(cell, index) in cells"
       :key="cell.data.path"
@@ -51,6 +52,8 @@ const colors = [
         >{{ cell.data.name }}<small>{{ size(cell.data.bytes) }}</small></span
       >
     </button>
-    <p v-if="!cells.length" class="empty">此目录没有已分配空间的文件</p>
+    <p v-if="!cells.length" class="empty">
+      {{ t("此目录没有已分配空间的文件") }}
+    </p>
   </div>
 </template>

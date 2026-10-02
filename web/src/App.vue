@@ -1,6 +1,8 @@
 <script setup lang="ts">
+import { t, systemText } from "./i18n";
 import { ref, computed, onUnmounted } from "vue";
 import { api, setToken, online, type Node } from "./api";
+import LanguagePicker from "./components/LanguagePicker.vue";
 import Overview from "./components/Overview.vue";
 import DiskExplorer from "./components/DiskExplorer.vue";
 import RulesPanel from "./components/RulesPanel.vue";
@@ -65,75 +67,81 @@ onUnmounted(() => clearInterval(timer));
   <div v-if="!logged" class="login-page">
     <form class="card login" @submit.prevent="login">
       <div class="brand"><span class="brand-icon">▦</span>NodeSweep</div>
-      <span class="eyebrow">LESS CLUTTER. MORE CLARITY.</span>
-      <h1>服务器空间管理</h1>
-      <p>连接你的节点，让每一份磁盘空间都有迹可循。</p>
+      <LanguagePicker />
+      <h1>{{ t("服务器空间管理") }}</h1>
+      <p>{{ t("连接你的节点，让每一份磁盘空间都有迹可循。") }}</p>
       <label
-        >管理员访问令牌<input
+        >{{ t("管理员访问令牌")
+        }}<input
           v-model="password"
           type="password"
           required
           autocomplete="current-password"
-          placeholder="配置文件中的 adminToken"
+          :placeholder="t('配置文件中的 adminToken')"
       /></label>
-      <p v-if="error" class="error" role="alert">{{ error }}</p>
-      <button class="primary">进入控制台 →</button
-      ><small>轻量部署 · 多节点管理 · 按规则清理</small>
+      <p v-if="error" class="error" role="alert">{{ systemText(error) }}</p>
+      <button class="primary">{{ t("进入控制台 →") }}</button
+      ><small>{{ t("轻量部署 · 多节点管理 · 按规则清理") }}</small>
     </form>
   </div>
   <div v-else class="app-shell">
     <aside>
       <div class="brand"><span class="brand-icon">▦</span>NodeSweep</div>
-      <span class="eyebrow">WORKSPACE</span>
+      <span class="eyebrow">{{ t("工作空间") }}</span>
       <nav>
         <button
           :class="{ active: page === 'overview' }"
           @click="page = 'overview'"
         >
-          ◫　节点总览</button
+          ◫　{{ t("节点总览") }}</button
         ><button :class="{ active: page === 'disk' }" @click="page = 'disk'">
-          ▦　磁盘分析</button
+          ▦　{{ t("磁盘分析") }}</button
         ><button :class="{ active: page === 'rules' }" @click="page = 'rules'">
-          ♧　清理方案</button
+          ♧　{{ t("清理方案") }}</button
         ><button :class="{ active: page === 'tasks' }" @click="page = 'tasks'">
-          ≡　任务记录
+          ≡　{{ t("任务记录") }}
         </button>
       </nav>
       <div class="sidebar-bottom">
-        <span class="status up"
-          >{{ nodes.filter(online).length }} 个节点在线</span
-        >
+        <span class="status up">{{
+          t("{count} 个节点在线", { count: nodes.filter(online).length })
+        }}</span>
         <p>NodeSweep / v0.1 alpha</p>
-        <button @click="logout">退出登录</button>
+        <button @click="logout">{{ t("退出登录") }}</button>
       </div>
     </aside>
     <main>
       <header>
         <div>
-          <span class="eyebrow">NODE OPERATIONS</span>
+          <span class="eyebrow">{{ t("节点运维") }}</span>
           <h1>
             {{
               page === "overview"
-                ? "节点总览"
+                ? t("节点总览")
                 : page === "disk"
-                  ? "磁盘分析"
+                  ? t("磁盘分析")
                   : page === "rules"
-                    ? "清理方案"
-                    : "任务记录"
+                    ? t("清理方案")
+                    : t("任务记录")
             }}
           </h1>
         </div>
-        <button class="primary" @click="enrolling = true">＋ 添加节点</button>
+        <div class="header-actions">
+          <LanguagePicker /><button class="primary" @click="enrolling = true">
+            ＋ {{ t("添加节点") }}
+          </button>
+        </div>
       </header>
-      <p v-if="error" class="error" role="alert">{{ error }}</p>
+      <p v-if="error" class="error" role="alert">{{ systemText(error) }}</p>
       <div
         v-if="page === 'disk' || page === 'rules'"
         class="node-selector toolbar"
       >
         <label
-          >当前节点<select v-model="selected">
+          >{{ t("当前节点")
+          }}<select v-model="selected">
             <option v-for="n in nodes" :key="n.id" :value="n.id">
-              {{ n.name }} · {{ online(n) ? "在线" : "离线" }}
+              {{ n.name }} · {{ online(n) ? t("在线") : t("离线") }}
             </option>
           </select></label
         ><span v-if="current" class="hint">{{ current.metrics.host }}</span
@@ -141,7 +149,7 @@ onUnmounted(() => clearInterval(timer));
           v-if="current && current.id !== 'local'"
           @click="revoking = true"
         >
-          撤销节点
+          {{ t("撤销节点") }}
         </button>
       </div>
       <Overview v-if="page === 'overview'" :nodes="nodes" @select="select" />
@@ -156,16 +164,22 @@ onUnmounted(() => clearInterval(timer));
         :node="current"
       />
       <TaskHistory v-else-if="page === 'tasks'" />
-      <div v-else class="card empty">先添加一台服务器，开始管理空间。</div>
-      <footer>NodeSweep · 看清占用，安心清理</footer>
+      <div v-else class="card empty">
+        {{ t("先添加一台服务器，开始管理空间。") }}
+      </div>
+      <footer>NodeSweep · {{ t("看清占用，安心清理") }}</footer>
     </main>
     <EnrollNode v-if="enrolling" @close="enrolling = false" @added="reload" />
     <div v-if="revoking" class="modal-backdrop">
       <div class="modal card">
-        <h2>撤销 {{ current?.name }}？</h2>
-        <p>该节点的凭证将立即失效。已经在节点执行的任务不会被远程中止。</p>
-        <button class="danger" @click="revoke">确认撤销</button>
-        <button @click="revoking = false">取消</button>
+        <h2>{{ t("撤销 {name}？", { name: current?.name || "" }) }}</h2>
+        <p>
+          {{
+            t("该节点的凭证将立即失效。已经在节点执行的任务不会被远程中止。")
+          }}
+        </p>
+        <button class="danger" @click="revoke">{{ t("确认撤销") }}</button>
+        <button @click="revoking = false">{{ t("取消") }}</button>
       </div>
     </div>
   </div>

@@ -9,6 +9,7 @@ A lightweight Linux server dashboard with multi-node monitoring, drill-down disk
 ## v0.1 Alpha
 
 - One Go binary: standalone, hub-only, or outbound agent mode.
+- UI in English, Japanese, Korean, Simplified Chinese and Traditional Chinese.
 - CPU, memory, load, disk capacity and inode metrics.
 - Allocated-space treemap with directory drill-down and file table.
 - Named cleanup schemes containing multiple reusable rules.
@@ -18,7 +19,7 @@ A lightweight Linux server dashboard with multi-node monitoring, drill-down disk
 - Agent-local allowlists, short-lived previews, open-file checks and identity verification.
 - SQLite-backed task history; no external database or message broker.
 
-This release only removes eligible expired archives. Scheduled cleanup, metrics history, journal/Docker-native rotation are planned. The current UI is Chinese; English UI is planned.
+This release only removes eligible expired archives. Scheduled cleanup, metrics history, journal/Docker-native rotation are planned. Switch languages on the login page or dashboard. Your choice is saved locally; dates and numbers follow the selected language. User names, paths and exported configuration remain unchanged.
 
 ## Run
 

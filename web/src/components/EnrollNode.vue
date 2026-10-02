@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { t, systemText } from "../i18n";
 import { ref, computed } from "vue";
 import { api, type Node } from "../api";
 const emit = defineEmits<{ close: []; added: [] }>();
@@ -48,37 +49,43 @@ function download() {
       class="modal card"
       role="dialog"
       aria-modal="true"
-      aria-label="添加节点"
+      :aria-label="t('添加节点')"
     >
       <div class="toolbar spread">
-        <h2>添加服务器</h2>
-        <button @click="emit('close')" aria-label="关闭">×</button>
+        <h2>{{ t("添加服务器") }}</h2>
+        <button @click="emit('close')" :aria-label="t('关闭')">×</button>
       </div>
-      <p v-if="error" class="error">{{ error }}</p>
+      <p v-if="error" class="error">{{ systemText(error) }}</p>
       <form v-if="!created" @submit.prevent="create">
         <label
-          >节点名称<input
+          >{{ t("节点名称")
+          }}<input
             v-model="name"
             required
             maxlength="100"
-            placeholder="香港 VPS"
+            :placeholder="t('香港 VPS')"
             autofocus
         /></label>
-        <p class="hint">每台服务器使用独立凭证，可随时撤销。</p>
-        <button class="primary" :disabled="busy">生成节点配置</button>
+        <p class="hint">{{ t("每台服务器使用独立凭证，可随时撤销。") }}</p>
+        <button class="primary" :disabled="busy">
+          {{ t("生成节点配置") }}
+        </button>
       </form>
       <div v-else>
-        <p>将配置保存到 VPS，设置文件权限为 600，再启动 Agent。</p>
+        <p>{{ t("将配置保存到 VPS，设置文件权限为 600，再启动 Agent。") }}</p>
         <pre>{{ config }}</pre>
-        <button @click="download">下载配置</button>
+        <button @click="download">{{ t("下载配置") }}</button>
         <pre>
 chmod 600 nodesweep-agent.json
 ./nodesweep -config nodesweep-agent.json</pre>
         <p class="hint">
-          凭证只在这里显示一次。远程接入需要 HTTPS；若当前通过 localhost
-          访问，请把 hub 改为服务器的 HTTPS 地址。
+          {{
+            t(
+              "凭证只在这里显示一次。远程接入需要 HTTPS；若当前通过 localhost 访问，请把 hub 改为服务器的 HTTPS 地址。",
+            )
+          }}
         </p>
-        <button class="primary" @click="emit('close')">完成</button>
+        <button class="primary" @click="emit('close')">{{ t("完成") }}</button>
       </div>
     </section>
   </div>

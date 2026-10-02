@@ -1,3 +1,4 @@
+import { locale } from "./i18n";
 export interface Disk {
   path: string;
   total: number;
@@ -99,11 +100,18 @@ export function size(n: number) {
   if (!n) return "0 B";
   const u = ["B", "KB", "MB", "GB", "TB"];
   const i = Math.min(Math.floor(Math.log(n) / Math.log(1024)), 4);
-  return (n / 1024 ** i).toFixed(i > 1 ? 1 : 0) + " " + u[i];
+  return (
+    new Intl.NumberFormat(locale.value, {
+      minimumFractionDigits: i > 1 ? 1 : 0,
+      maximumFractionDigits: i > 1 ? 1 : 0,
+    }).format(n / 1024 ** i) +
+    " " +
+    u[i]
+  );
 }
 export function online(n: Node) {
   return Date.now() - new Date(n.lastSeen).getTime() < 45000;
 }
 export function date(v: string) {
-  return new Date(v).toLocaleString("zh-CN");
+  return new Date(v).toLocaleString(locale.value);
 }
