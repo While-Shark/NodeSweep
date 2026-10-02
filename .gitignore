@@ -1,0 +1,8 @@
+/nodesweep
+/data/
+*.db*
+.env
+config.json
+node_modules/
+web/dist/*
+!web/dist/.gitkeep

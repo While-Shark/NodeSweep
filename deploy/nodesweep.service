@@ -1,0 +1,21 @@
+[Unit]
+Description=NodeSweep server monitoring and archive cleanup
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/var/lib/nodesweep
+ExecStart=/usr/local/bin/nodesweep -config /etc/nodesweep/config.json
+Restart=on-failure
+RestartSec=5
+UMask=0077
+NoNewPrivileges=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+TimeoutStopSec=20
+
+[Install]
+WantedBy=multi-user.target

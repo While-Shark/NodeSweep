@@ -1,0 +1,33 @@
+name: CI
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - run: npm ci && npm run format:check && npm run build
+        working-directory: web
+      - run: go test -race ./...
+      - run: go vet ./...
+      - run: test -z "$(gofmt -l cmd internal web/embed.go)"
+      - run: CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -o /tmp/nodesweep-amd64 ./cmd/nodesweep
+      - run: python3 scripts/smoke.py /tmp/nodesweep-amd64
+      - run: CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -trimpath -o /tmp/nodesweep-arm64 ./cmd/nodesweep
