@@ -46,6 +46,7 @@ const colors = [
         background: colors[index % colors.length],
       }"
       :title="cell.data.path + ' · ' + size(cell.data.bytes)"
+      :aria-label="cell.data.path + ' · ' + size(cell.data.bytes)"
       @click="emit('open', cell.data)"
     >
       <span v-if="cell.x1 - cell.x0 > 75 && cell.y1 - cell.y0 > 35"

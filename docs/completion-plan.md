@@ -11,11 +11,11 @@ The goal is a lightweight, usable release with explicit safety boundaries. A fea
 | Cleanup failure notifications | Opt-in terminal execution alerts, persistent deduplication, bounded processing and redacted payloads | Complete |
 | Notification adapters | Optional email/platform forwarding without exposing secrets | Pending |
 | Access and audit | Read-only/operator/admin boundaries, independent credentials, protected bounded audit trail | Complete |
-| Cleanup orchestration | Node-specific fresh previews, explicit confirmation and bounded execution; never replay destructive work after restart | Pending |
+| Cleanup orchestration | Node-specific fresh previews, explicit confirmation and bounded execution; never replay destructive work after restart | Complete |
 | Scheduled cleanup | Disabled by default, explicit node/rule assignment, overlap prevention and audit; independent of release scheduling | Pending |
 | Log integration | Inspect rotation configuration; journal native retention and Docker rotation guidance; no arbitrary shell commands | Pending |
 | Agent onboarding | HTTPS and directory wizard, protected downloaded config and local read-only preflight | Complete |
-| Keyboard/accessibility | Keyboard navigation, dialogs, focus restoration, mobile layouts, five languages | Pending |
+| Keyboard/accessibility | Keyboard navigation, dialogs, focus restoration, mobile layouts, five languages | Complete |
 | VPS acceptance | BaoTa/1Panel defaults and custom paths, arm64, SELinux/hidepid, low disk and extended uptime | Requires real hosts |
 
 Scan caching will follow measured scan behavior: any cached tree must show its age and cannot authorize cleanup. Panel-version and additional rotation-pattern claims require fixtures or real-host evidence. Release workflows run for new checked commits, with no daily schedule.

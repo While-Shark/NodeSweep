@@ -124,32 +124,52 @@ onUnmounted(logout);
     </form>
   </div>
   <div v-else class="app-shell">
+    <a class="skip-link" href="#main-content">{{ t("跳转到主要内容") }}</a>
     <aside>
       <div class="brand"><span class="brand-icon">▦</span>NodeSweep</div>
       <span class="eyebrow">{{ t("工作空间") }}</span>
       <nav>
         <button
           :class="{ active: page === 'overview' }"
+          :aria-current="page === 'overview' ? 'page' : undefined"
           @click="page = 'overview'"
         >
           ◫　{{ t("节点总览") }}</button
-        ><button :class="{ active: page === 'disk' }" @click="page = 'disk'">
+        ><button
+          :class="{ active: page === 'disk' }"
+          :aria-current="page === 'disk' ? 'page' : undefined"
+          @click="page = 'disk'"
+        >
           ▦　{{ t("磁盘分析") }}</button
-        ><button :class="{ active: page === 'rules' }" @click="page = 'rules'">
+        ><button
+          :class="{ active: page === 'rules' }"
+          :aria-current="page === 'rules' ? 'page' : undefined"
+          @click="page = 'rules'"
+        >
           ♧　{{ t("清理方案") }}</button
-        ><button :class="{ active: page === 'tasks' }" @click="page = 'tasks'">
+        ><button
+          :class="{ active: page === 'tasks' }"
+          :aria-current="page === 'tasks' ? 'page' : undefined"
+          @click="page = 'tasks'"
+        >
           ≡　{{ t("任务记录") }}</button
         ><button
           :class="{ active: page === 'alerts' }"
+          :aria-current="page === 'alerts' ? 'page' : undefined"
           @click="page = 'alerts'"
         >
           ⚑　{{ t("磁盘告警") }}</button
-        ><button :class="{ active: page === 'batch' }" @click="page = 'batch'">
+        ><button
+          :class="{ active: page === 'batch' }"
+          :aria-current="page === 'batch' ? 'page' : undefined"
+          @click="page = 'batch'"
+        >
           ▤　{{ t("批量操作") }}
         </button>
         <button
           v-if="canAdmin"
           :class="{ active: page === 'audit' }"
+          :aria-current="page === 'audit' ? 'page' : undefined"
           @click="page = 'audit'"
         >
           ≡　{{ t("操作审计") }}
@@ -174,7 +194,7 @@ onUnmounted(logout);
         <button @click="logout">{{ t("退出登录") }}</button>
       </div>
     </aside>
-    <main>
+    <main id="main-content" tabindex="-1">
       <header>
         <div>
           <span class="eyebrow">{{ t("节点运维") }}</span>
@@ -258,7 +278,13 @@ onUnmounted(logout);
       @added="reload"
     />
     <div v-if="revoking && canAdmin" class="modal-backdrop">
-      <div class="modal card">
+      <div
+        v-dialog="() => (revoking = false)"
+        class="modal card"
+        role="dialog"
+        aria-modal="true"
+        :aria-label="t('撤销节点')"
+      >
         <h2>{{ t("撤销 {name}？", { name: current?.name || "" }) }}</h2>
         <p>
           {{

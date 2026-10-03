@@ -104,6 +104,7 @@ const server = http.createServer((req, res) => {
       const submitted = [];
       let cancellableScan = false;
       let fixtureRole = "admin";
+      let failRemote = true;
       let holdDetail = false,
         releaseDetail,
         notifyHeld;
@@ -222,7 +223,7 @@ const server = http.createServer((req, res) => {
             ];
           if (["preview", "trial"].includes(body.request.kind))
             result = {
-              id: "p1",
+              id: "plan-" + body.node,
               rule,
               created: new Date().toISOString(),
               bytes: 4096,
@@ -236,6 +237,11 @@ const server = http.createServer((req, res) => {
               },
             };
           if (body.request.kind === "execute") {
+            assert.equal(
+              body.request.planId,
+              "plan-" + body.node,
+              "plan crossed nodes",
+            );
             executions++;
             result = {
               deleted: 1,
@@ -269,7 +275,7 @@ const server = http.createServer((req, res) => {
             id,
             node: body.node,
             status:
-              body.node === "remote"
+              failRemote && body.node === "remote"
                 ? "failed"
                 : cancellableScan && body.request.kind === "scan"
                   ? "running"
@@ -284,7 +290,8 @@ const server = http.createServer((req, res) => {
                     elapsedMillis: 1000,
                   }
                 : undefined,
-            error: body.node === "remote" ? "node offline" : undefined,
+            error:
+              failRemote && body.node === "remote" ? "node offline" : undefined,
             created: new Date().toISOString(),
             request: body.request,
             result,
@@ -329,6 +336,21 @@ const server = http.createServer((req, res) => {
       await page.locator("input[type=password]").fill("good");
       await page.locator("form.login button").click();
       await page.locator(".app-shell").waitFor();
+      await page
+        .getByRole("link", {
+          name: label(locale, "跳转到主要内容"),
+          exact: true,
+        })
+        .focus();
+      await page.keyboard.press("Enter");
+      assert.equal(
+        await page.evaluate(() => document.activeElement.id),
+        "main-content",
+      );
+      assert.equal(
+        await page.locator("aside nav button[aria-current=page]").count(),
+        1,
+      );
       assert.ok(
         (await page.locator("main").innerText()).includes("我的服务器"),
       );
@@ -471,6 +493,36 @@ const server = http.createServer((req, res) => {
       await page
         .getByRole("button", { name: label(locale, "添加节点"), exact: false })
         .click();
+      await page.locator(".modal").waitFor();
+      assert.ok(
+        await page.evaluate(() =>
+          document.querySelector(".modal").contains(document.activeElement),
+        ),
+      );
+      assert.ok(await page.locator("main").evaluate((el) => el.inert));
+      for (let i = 0; i < 12; i++) {
+        await page.keyboard.press("Tab");
+        assert.ok(
+          await page.evaluate(() =>
+            document.querySelector(".modal").contains(document.activeElement),
+          ),
+        );
+      }
+      await page.keyboard.press("Escape");
+      await page.locator(".modal").waitFor({ state: "hidden" });
+      assert.ok(
+        await page.evaluate(
+          (name) => document.activeElement.textContent.includes(name),
+          label(locale, "添加节点"),
+        ),
+      );
+      assert.ok(!(await page.locator("main").evaluate((el) => el.inert)));
+      await page
+        .getByRole("button", {
+          name: "＋ " + label(locale, "添加节点"),
+          exact: true,
+        })
+        .click();
       await page.locator(".modal input").first().fill("自定义 VPS");
       await page
         .getByLabel(label(locale, "管理端 HTTPS 地址"), { exact: true })
@@ -609,6 +661,25 @@ const server = http.createServer((req, res) => {
         .getByRole("button", { name: label(locale, "编辑节点"), exact: true })
         .first()
         .click();
+      await page.locator(".modal").waitFor();
+      await page.keyboard.press("Shift+Tab");
+      assert.ok(
+        await page.evaluate(() =>
+          document.querySelector(".modal").contains(document.activeElement),
+        ),
+      );
+      await page.keyboard.press("Escape");
+      await page.locator(".modal").waitFor({ state: "hidden" });
+      assert.ok(
+        await page.evaluate(
+          (name) => document.activeElement.textContent.includes(name),
+          label(locale, "编辑节点"),
+        ),
+      );
+      await page
+        .getByRole("button", { name: label(locale, "编辑节点"), exact: true })
+        .first()
+        .click();
       await page.locator(".modal input").nth(0).fill("renamed-vps");
       await page.locator(".modal input").nth(1).fill("*");
       await page
@@ -717,6 +788,101 @@ const server = http.createServer((req, res) => {
       await page.locator("aside nav button").nth(3).click();
       await page.waitForTimeout(1200); // Allow old workers to reach the next queue item if cancellation is broken.
       assert.equal(submitted.length - leaveStart, 2);
+      failRemote = false;
+      await page.locator("aside nav button").nth(5).click();
+      await page
+        .getByRole("button", {
+          name: label(locale, "选择本组在线节点"),
+          exact: true,
+        })
+        .click();
+      await page
+        .getByRole("button", { name: label(locale, "批量预览"), exact: true })
+        .click();
+      await page
+        .getByRole("button", {
+          name: label(locale, "停止后续提交"),
+          exact: true,
+        })
+        .waitFor({ state: "hidden" });
+      assert.equal(
+        await page.locator("article input[type=checkbox]").count(),
+        3,
+      );
+      assert.ok(await page.locator(".batch-confirm button").isDisabled());
+      await page.locator("article details summary").first().click();
+      const listDownload = page.waitForEvent("download");
+      await page
+        .getByRole("button", {
+          name: label(locale, "导出完整清单"),
+          exact: true,
+        })
+        .first()
+        .click();
+      const savedList = await listDownload;
+      const previewList = JSON.parse(
+        fs.readFileSync(await savedList.path(), "utf8"),
+      );
+      assert.equal(previewList.files.length, 1);
+      assert.equal(previewList.node, fixtureNodes[0].id);
+      assert.equal(previewList.id, undefined);
+      await page.locator("article input[type=checkbox]").first().check();
+      assert.ok(!(await page.locator(".batch-confirm button").isDisabled()));
+      await page.locator("main > section select").first().selectOption("g:*");
+      assert.ok(
+        await page.locator(".batch-confirm button").isDisabled(),
+        "group change kept old authorization",
+      );
+      await page.locator("main > section select").first().selectOption("*");
+      await page
+        .getByRole("button", {
+          name: label(locale, "选择本组在线节点"),
+          exact: true,
+        })
+        .click();
+      await page
+        .getByRole("button", { name: label(locale, "批量预览"), exact: true })
+        .click();
+      await page
+        .getByRole("button", {
+          name: label(locale, "停止后续提交"),
+          exact: true,
+        })
+        .waitFor({ state: "hidden" });
+      for (const checkbox of await page
+        .locator("article input[type=checkbox]")
+        .all())
+        await checkbox.check();
+      const cleanupStart = submitted.length;
+      await page.locator(".batch-confirm button").click();
+      await page
+        .getByRole("button", {
+          name: label(locale, "停止后续提交"),
+          exact: true,
+        })
+        .click();
+      await page
+        .locator("article")
+        .filter({ hasText: label(locale, "未提交") })
+        .waitFor();
+      assert.equal(submitted.length - cleanupStart, 2);
+      assert.ok(
+        submitted
+          .slice(cleanupStart)
+          .every(
+            (x) =>
+              x.request.kind === "execute" &&
+              x.request.planId === "plan-" + x.node,
+          ),
+      );
+      assert.ok(
+        await page.locator(".batch-confirm button").isDisabled(),
+        "cleanup previews were reused",
+      );
+      assert.equal(
+        await page.locator("article input[type=checkbox]").count(),
+        0,
+      );
       for (const width of [390, 360]) {
         await page.setViewportSize({ width, height: 844 });
         for (let i = 0; i < 7; i++) {

@@ -92,7 +92,7 @@ Nightly 僅在 `master` 有新提交且 CI 通過後自動更新，供測試使�
 
 ## 安裝、報告與告警
 
-解壓後執行 `sudo bash install.sh --start`，或以 `sudo bash install.sh --download v0.1.0-alpha.8 --start` 校驗並下載指定版本。升級保留設定與標準停機狀態快照，啟動失敗恢復舊二進位檔。`--rollback` 只切換執行檔，不覆蓋目前設定和資料庫；自訂資料路徑需自行備份，舊快照確認後手動清理。
+解壓後執行 `sudo bash install.sh --start`，或以 `sudo bash install.sh --download v0.1.0-alpha.9 --start` 校驗並下載指定版本。升級保留設定與標準停機狀態快照，啟動失敗恢復舊二進位檔。`--rollback` 只切換執行檔，不覆蓋目前設定和資料庫；自訂資料路徑需自行備份，舊快照確認後手動清理。
 
 規則試執行解釋比對與排除原因，不建立可執行預覽。清理報告顯示逐檔結果、配置空間與時間，任務紀錄可查看失敗時的部分結果。
 

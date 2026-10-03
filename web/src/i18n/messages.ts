@@ -1211,5 +1211,62 @@ export const messages = {
     "권한이 부족합니다",
     "權限不足",
   ],
+  "所有节点使用相同规则，但预览和授权独立。逐台核对清单并确认后才可批量清理。":
+    [
+      "Nodes use the same rule with independent previews and authorization. Review and confirm each node before batch cleanup.",
+      "同じルールを使いますがプレビューと承認はノードごとに独立します。各ノードの一覧を確認してから一括削除してください。",
+      "같은 규칙을 사용하지만 미리보기와 권한은 노드별로 독립적입니다. 각 노드의 목록을 확인한 후 일괄 정리하세요.",
+      "節點使用相同規則，但預覽與授權獨立。逐台核對清單並確認後才可批次清理。",
+    ],
+  "预览仅供本次确认，五分钟后需重新预览；失败或停止后不得复用。已提交的清理不能取消。":
+    [
+      "Previews are for this confirmation only and expire here after five minutes. Retry or stop requires new previews. Submitted cleanup cannot be cancelled.",
+      "この確認専用のプレビューは5分後に期限切れとなります。失敗・停止後は再プレビューが必要です。送信済みの削除はキャンセルできません。",
+      "미리보기는 이번 확인에만 사용하며 5분 후 만료됩니다. 실패나 중지 후에는 새 미리보기가 필요합니다. 제출된 정리는 취소할 수 없습니다.",
+      "預覽僅供本次確認，五分鐘後需重新預覽；失敗或停止後不得重用。已提交的清理無法取消。",
+    ],
+  "清理已确认的 {count} 台节点": [
+    "Clean {count} confirmed nodes",
+    "確認済みの{count}ノードを削除",
+    "확인한 노드 {count}개 정리",
+    "清理已確認的 {count} 台節點",
+  ],
+  "我已核对 {name} 的清单，确认永久删除": [
+    "I reviewed {name} and confirm permanent deletion",
+    "{name}の一覧を確認し、永久削除を承認します",
+    "{name}의 목록을 검토했으며 영구 삭제를 확인합니다",
+    "我已核對 {name} 的清單，確認永久刪除",
+  ],
+  "此预览不可执行，请重新预览。": [
+    "This preview cannot be executed. Create a new preview.",
+    "このプレビューは実行できません。再プレビューしてください。",
+    "이 미리보기는 실행할 수 없습니다. 새 미리보기를 만드세요.",
+    "此預覽無法執行，請重新預覽。",
+  ],
+  跳转到主要内容: [
+    "Skip to main content",
+    "メインコンテンツへ",
+    "본문으로 건너뛰기",
+    "跳至主要內容",
+  ],
+  查看清理清单: [
+    "View cleanup list",
+    "削除一覧を表示",
+    "정리 목록 보기",
+    "檢視清理清單",
+  ],
+  "页面显示前 100 项；可导出完整清单核对。": [
+    "The page shows the first 100 items. Export the complete list for review.",
+    "最初の100件を表示します。完全な一覧をエクスポートして確認できます。",
+    "처음 100개를 표시합니다. 전체 목록을 내보내 검토할 수 있습니다.",
+    "頁面顯示前 100 項；可匯出完整清單核對。",
+  ],
+  导出完整清单: [
+    "Export complete list",
+    "完全な一覧をエクスポート",
+    "전체 목록 내보내기",
+    "匯出完整清單",
+  ],
+  大小: ["Size", "サイズ", "크기", "大小"],
 } as const;
 export type MessageKey = keyof typeof messages;

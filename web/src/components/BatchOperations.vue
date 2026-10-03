@@ -10,8 +10,10 @@ import {
   type Rule,
   type Scan,
   type Plan,
+  type CleanupResult,
 } from "../api";
 import { t, systemText } from "../i18n";
+import CleanupReport from "./CleanupReport.vue";
 import ReviewDetails from "./ReviewDetails.vue";
 const props = defineProps<{ nodes: Node[] }>();
 const emit = defineEmits<{ changed: []; select: [id: string] }>();
@@ -49,9 +51,40 @@ interface Row {
   status: "pending" | "running" | "succeeded" | "failed" | "not_submitted";
   scan?: Scan;
   plan?: Plan;
+  receivedAt?: number;
+  confirmed?: boolean;
+  consumed?: boolean;
+  cleanup?: CleanupResult;
   error?: string;
 }
 const rows = ref<Row[]>([]);
+const clock = ref(Date.now());
+const ageTimer = setInterval(() => (clock.value = Date.now()), 1000);
+onUnmounted(() => clearInterval(ageTimer));
+function ready(row: Row) {
+  return (
+    !!row.plan?.id &&
+    !row.consumed &&
+    !!row.receivedAt &&
+    clock.value - row.receivedAt < 300000 &&
+    selectedOnline.value.some((n) => n.id === row.id)
+  );
+}
+const approved = computed(() =>
+  rows.value.filter((row) => ready(row) && row.confirmed),
+);
+watch(
+  [group, ruleID, selected],
+  () => {
+    if (busy.value || !canOperate.value) return;
+    for (const row of rows.value) {
+      row.confirmed = false;
+      row.consumed = true;
+    }
+  },
+  { deep: true },
+);
+
 api<Rule[]>("rules", "GET", undefined, controller.signal)
   .then((v) => {
     rules.value = v;
@@ -127,7 +160,11 @@ async function run(kind: "scan" | "preview") {
         );
         if (controller.signal.aborted) return;
         if (kind === "scan") row.scan = result as Scan;
-        else row.plan = result as Plan;
+        else {
+          row.plan = result as Plan;
+          row.receivedAt = Date.now();
+          row.confirmed = false;
+        }
         row.status = "succeeded";
       } catch (e) {
         if (controller.signal.aborted) return;
@@ -140,6 +177,89 @@ async function run(kind: "scan" | "preview") {
     await Promise.all([worker(), worker()]);
   } finally {
     for (const row of rows.value) {
+      if (row.status === "pending") row.status = "not_submitted";
+    }
+    busy.value = false;
+  }
+}
+
+function exportPreview(row: Row) {
+  if (!row.plan) return;
+  const data = {
+    node: row.id,
+    name: row.name,
+    rule: row.plan.rule,
+    created: row.plan.created,
+    bytes: row.plan.bytes,
+    files: row.plan.files,
+  };
+  const url = URL.createObjectURL(
+    new Blob([JSON.stringify(data, null, 2) + "\n"], {
+      type: "application/json",
+    }),
+  );
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = "nodesweep-preview-" + row.id + ".json";
+  link.click();
+  URL.revokeObjectURL(url);
+}
+async function executeApproved() {
+  if (busy.value || !canOperate.value) return;
+  const targets = approved.value.slice();
+  if (!targets.length || targets.length > 20) return;
+  // Snapshot each node's own plan before dispatch. Every approval is consumed
+  // immediately, including unsubmitted rows, so any retry requires a new preview.
+  const jobs = targets.map((row) => ({ row, planID: row.plan!.id }));
+  for (const row of rows.value) {
+    row.confirmed = false;
+    row.consumed = true;
+  }
+  busy.value = true;
+  stopQueued.value = false;
+  error.value = "";
+  for (const { row } of jobs) {
+    row.status = "pending";
+    row.error = undefined;
+  }
+  let next = 0;
+  async function worker() {
+    while (
+      !controller.signal.aborted &&
+      !stopQueued.value &&
+      next < jobs.length
+    ) {
+      const { row, planID } = jobs[next++];
+      // Recheck online/visible membership just before admission. Engine-side
+      // plan age, allowlist and file identity remain authoritative.
+      if (
+        !selectedOnline.value.some((n) => n.id === row.id) ||
+        Date.now() - (row.receivedAt || 0) >= 300000
+      ) {
+        row.status = "not_submitted";
+        continue;
+      }
+      row.status = "running";
+      try {
+        const result = await task<CleanupResult>(
+          row.id,
+          { kind: "execute", planId: planID },
+          controller.signal,
+        );
+        if (controller.signal.aborted) return;
+        row.cleanup = result;
+        row.status = "succeeded";
+      } catch (e) {
+        if (controller.signal.aborted) return;
+        row.error = (e as Error).message;
+        row.status = "failed";
+      }
+    }
+  }
+  try {
+    await Promise.all([worker(), worker()]);
+  } finally {
+    for (const { row } of jobs) {
       if (row.status === "pending") row.status = "not_submitted";
     }
     busy.value = false;
@@ -257,10 +377,26 @@ async function run(kind: "scan" | "preview") {
       <p class="hint">
         {{
           t(
-            "所有节点使用相同路径或规则，各节点仍按本地允许目录校验。清理请进入单节点页面重新预览并确认。",
+            "所有节点使用相同规则，但预览和授权独立。逐台核对清单并确认后才可批量清理。",
           )
         }}
       </p>
+    </div>
+    <div v-if="rows.some((row) => row.plan)" class="card batch-confirm">
+      <p class="hint">
+        {{
+          t(
+            "预览仅供本次确认，五分钟后需重新预览；失败或停止后不得复用。已提交的清理不能取消。",
+          )
+        }}
+      </p>
+      <button
+        class="danger"
+        :disabled="busy || !canOperate || !approved.length"
+        @click="executeApproved"
+      >
+        {{ t("清理已确认的 {count} 台节点", { count: approved.length }) }}
+      </button>
     </div>
     <article v-for="row in rows" :key="row.id" class="card">
       <div class="toolbar spread">
@@ -284,11 +420,57 @@ async function run(kind: "scan" | "preview") {
           {{ row.plan.rule.root }} · {{ t("符合清理条件") }}:
           {{ row.plan.files.length }} · {{ size(row.plan.bytes) }}
         </p>
+        <label class="check" v-if="!row.consumed"
+          ><input
+            v-model="row.confirmed"
+            type="checkbox"
+            :disabled="
+              busy || !canOperate || !ready(row) || !row.plan.files.length
+            "
+          />{{
+            t("我已核对 {name} 的清单，确认永久删除", { name: row.name })
+          }}</label
+        >
+        <p v-if="!ready(row) && !busy" class="hint">
+          {{ t("此预览不可执行，请重新预览。") }}
+        </p>
+        <details>
+          <summary>{{ t("查看清理清单") }}</summary>
+          <p class="hint">{{ t("页面显示前 100 项；可导出完整清单核对。") }}</p>
+          <button @click="exportPreview(row)">{{ t("导出完整清单") }}</button>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>{{ t("文件路径") }}</th>
+                  <th>{{ t("大小") }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr
+                  v-for="file in row.plan.files.slice(0, 100)"
+                  :key="file.path"
+                >
+                  <td>
+                    <code>{{ file.path }}</code>
+                  </td>
+                  <td>{{ size(file.size) }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </details>
         <ReviewDetails v-if="row.plan.review" :review="row.plan.review" />
       </div>
+      <CleanupReport v-if="row.cleanup" :result="row.cleanup" />
     </article>
     <div v-if="editing" class="modal-backdrop">
       <form
+        v-dialog="
+          () => {
+            if (!saving) editing = undefined;
+          }
+        "
         class="modal card"
         role="dialog"
         aria-modal="true"

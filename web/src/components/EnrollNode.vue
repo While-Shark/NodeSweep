@@ -68,6 +68,7 @@ function download() {
 <template>
   <div class="modal-backdrop">
     <section
+      v-dialog="() => emit('close')"
       class="modal card"
       role="dialog"
       aria-modal="true"
