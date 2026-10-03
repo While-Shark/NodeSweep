@@ -30,6 +30,8 @@ jobs:
       - run: test -z "$(gofmt -l cmd internal web/embed.go)"
       - run: CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -o /tmp/nodesweep-amd64 ./cmd/nodesweep
       - run: python3 scripts/smoke.py /tmp/nodesweep-amd64
+      - name: Isolated scan stability checks
+        run: python3 scripts/stability.py /tmp/nodesweep-amd64
       - run: CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -trimpath -o /tmp/nodesweep-arm64 ./cmd/nodesweep
       - name: Dependency security checks
         run: |

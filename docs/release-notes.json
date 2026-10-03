@@ -1,45 +1,25 @@
 {
-  "version": "0.1.0-alpha.10",
+  "version": "0.1.0-alpha.11",
   "changes": {
     "en": [
-      "Bound metric sampling with cooperative one-second deadlines, capped proc reads, 128 filesystem probes and conservative 32 KiB metric payloads; reject configured directory metadata above 32 KiB before startup.",
-      "Label partial samples and display unavailable CPU measurements as a dash. Exclude CPU warm-up and regressed counters from new history samples; verify cancellation, large mount tables, oversized inputs and all five languages. Upgrade the hub before Agents; blocked kernel I/O can delay cooperative limits.",
-      "Add administrator-only scheduled cleanup, paused by default, with immutable node/rule snapshots and fresh same-node preview consent. Bound to 32 schedules and two pipelines; audit before dispatch, skip offline/busy runs, never catch up, and pause after restart or failure.",
-      "Add bounded read-only logrotate/journald/Docker configuration checks without script execution or full configuration disclosure, plus native retention guidance. Independently protect managed journal/audit/Docker paths, custom Docker data-root from standard daemon.json, journal files and common Docker JSON archives during preview and execution.",
-      "Add Slack and Discord webhook formats with bounded plain text, disabled mentions and link expansion, and document optional email via a trusted HTTPS relay. Destination secrets stay in protected hub configuration; no direct SMTP or remote command runner.",
-      "Reuse the latest retained scan only for the same node/path; label historical data and show its timestamp. No new task or cleanup authorization is created. Verify schedule ownership, overlap, restart and audit failure, managed-log guards, configuration redaction, bounded sampling and all five languages at desktop/mobile widths. Real VPS and live notification acceptance remain separate."
+      "Add an isolated Linux scan stability tool to CI and packaged binaries: verify entry/payload budgets, cancellation with partial results and a subsequent scan. Reports include the binary SHA-256, aggregate timings and sampled RSS/file descriptor peaks without credentials or private paths.",
+      "Provide opt-in million-file and extended scan runs plus a real-host acceptance matrix. Real VPS, arm64 hardware, restricted process visibility, low disk and live notification evidence remain pending; short CI checks do not establish long-term stability."
     ],
     "zh-CN": [
-      "限制指标采样：协作式一秒期限、有界 proc 读取、最多 128 次文件系统探测和保守的 32 KiB 指标载荷；启动前拒绝超过 32 KiB 的目录元数据。",
-      "标记不完整采样，将不可用 CPU 显示为横线，历史记录排除预热及回退计数；验证取消、大量挂载、过大输入和五语界面。先升级管理端，再升级 Agent；阻塞内核 I/O 可能延迟协作式限制。",
-      "加入默认暂停的管理员自动清理计划：固定节点与规则快照，启用需同节点新预览和明确授权；最多 32 条、同时 2 条处理链，派发前审计，离线或忙碌跳过、不补做，重启或失败后暂停。",
-      "加入有界、只读的 logrotate／journald／Docker 配置检查，不执行脚本或泄露完整配置，并提供原生保留指南；预览和执行独立保护 journal／audit／Docker 目录、标准 daemon.json 中静态自定义 data-root、journal 文件及常见 Docker JSON 归档。",
-      "加入 Slack／Discord 格式：限制纯文本、禁用提及与链接展开；提供可信 HTTPS Relay 邮件转发指南，密钥仅存于管理端受保护配置，不内置 SMTP 或远程命令执行。",
-      "复用同节点、同目录最新保留扫描，标记历史状态并显示时间，不创建新任务或清理授权；验证计划归属、重叠、重启、审计失败、受管理日志保护、配置脱敏、采样预算及五语桌面／移动界面。真实 VPS 和实际通知验收单独记录。"
+      "加入隔离的 Linux 扫描稳定性工具，并接入 CI 和发布包验证：检查条目与载荷预算、取消后的部分结果及再次扫描。报告包含二进制 SHA-256、汇总耗时和采样内存／描述符峰值，不输出凭证或私有路径。",
+      "提供可选百万文件与持续扫描验证，以及真实主机验收矩阵。真实 VPS、arm64 硬件、受限进程可见性、低磁盘和实际通知仍待验收；短期 CI 不代表长期稳定性。"
     ],
     "zh-TW": [
-      "限制指標採樣：協作式一秒期限、有界 proc 讀取、最多 128 次檔案系統探測及保守的 32 KiB 指標載荷；啟動前拒絕超過 32 KiB 的目錄中繼資料。",
-      "標記不完整採樣，將不可用 CPU 顯示為橫線，歷史紀錄排除預熱與回退計數；驗證取消、大量掛載、過大輸入與五語介面。先升級管理端，再升級 Agent；阻塞核心 I/O 可能延遲協作式限制。",
-      "加入預設暫停的管理員自動清理計畫：固定節點與規則快照，啟用需同節點新預覽和明確授權；最多 32 條、同時 2 條處理鏈，派發前稽核，離線或忙碌跳過、不補做，重啟或失敗後暫停。",
-      "加入有界、唯讀的 logrotate／journald／Docker 設定檢查，不執行指令碼或洩漏完整設定，並提供原生保留指南；預覽和執行獨立保護 journal／audit／Docker 目錄、標準 daemon.json 的靜態自訂 data-root、journal 檔案及常見 Docker JSON 封存。",
-      "加入 Slack／Discord 格式：限制純文字、停用提及與連結展開；提供可信 HTTPS Relay 郵件轉發指南，密鑰僅存於管理端受保護設定，不內建 SMTP 或遠端命令執行。",
-      "重用同節點、同目錄最新保留掃描，標記歷史狀態並顯示時間，不建立新工作或清理授權；驗證計畫歸屬、重疊、重啟、稽核失敗、受管理日誌保護、設定去識別、採樣預算與五語桌面／行動介面。真實 VPS 和實際通知驗收另行記錄。"
+      "加入隔離的 Linux 掃描穩定性工具，並接入 CI 與發佈包驗證：檢查項目與載荷預算、取消後的部分結果及再次掃描。報告包含二進位 SHA-256、彙總耗時及採樣記憶體／描述符峰值，不輸出憑證或私有路徑。",
+      "提供可選百萬檔案與持續掃描驗證，以及真實主機驗收矩陣。真實 VPS、arm64 硬體、受限程序可見性、低磁碟與實際通知仍待驗收；短期 CI 不代表長期穩定性。"
     ],
     "ja": [
-      "メトリクス収集に協調的な1秒制限、proc読取り上限、128回のファイルシステム検査と保守的な32 KiBペイロード上限を追加。起動前に32 KiBを超えるディレクトリ情報を拒否。",
-      "部分的な測定を明示し、CPUが未確定の場合は横線で表示。初回や逆行カウンターを履歴から除外し、キャンセル、大量のマウント、過大入力、5言語表示を検証。ハブから先に更新してください。ブロックされたカーネルI/Oでは制限が遅れる場合があります。",
-      "管理者専用の自動削除予定を追加。既定で停止し、ノードとルールを固定。有効化には同じノードの新プレビューと明示承認が必要。最大32予定・2処理、送信前監査、オフライン・処理中はスキップし、再起動や失敗で停止。",
-      "有界で読み取り専用のlogrotate／journald／Docker設定検査と保持ガイドを追加。スクリプトや全設定の公開は行わず、標準の管理対象ディレクトリ、静的data-root、journalファイルとDocker JSONアーカイブをプレビューと実行時に保護。",
-      "Slack／Discord通知形式を追加。テキストを制限し、メンションとリンク展開を無効化。HTTPSリレーによるメール転送を文書化。秘密情報は保護設定内に保持し、SMTPや遠隔コマンド機能は内蔵しません。",
-      "同じノードとパスの保存済みスキャンを時刻付きの履歴として再利用。新タスクや削除承認は作成せず、予定の所有権・重複・再起動・監査失敗、ログ保護、設定非公開、収集上限と5言語の画面を検証。実VPSと通知の実送信検証は別途必要。"
+      "隔離したLinuxスキャン安定性ツールをCIと配布バイナリの検証に追加。項目数・ペイロード上限、キャンセル後の部分結果と再スキャンを確認します。レポートにはバイナリSHA-256、所要時間、採取したRSSとファイル記述子の最大値を含み、認証情報や非公開パスは含みません。",
+      "任意の百万ファイル・継続スキャン検証と実機検証表を追加。実VPS、arm64実機、プロセス可視性制限、空き容量不足と通知の実送信は未検証です。短時間のCIは長期安定性の証明ではありません。"
     ],
     "ko": [
-      "지표 수집에 협력적 1초 제한, proc 읽기 상한, 파일 시스템 검사 128회 및 보수적 32 KiB 페이로드 상한을 추가했습니다. 시작 전에 32 KiB를 넘는 디렉터리 메타데이터를 거부합니다.",
-      "부분 측정을 표시하고 사용할 수 없는 CPU는 대시로 표시합니다. 초기 및 역행 카운터를 기록에서 제외하며 취소, 대규모 마운트, 과도한 입력 및 5개 언어를 검증했습니다. 허브부터 업데이트하세요. 차단된 커널 I/O로 제한이 지연될 수 있습니다.",
-      "관리자 전용 자동 정리 일정을 추가했습니다. 기본 일시 중지 상태로 노드와 규칙을 고정하며 같은 노드의 새 미리보기와 명시적 승인으로 활성화합니다. 최대 32개 일정과 2개 처리 흐름, 제출 전 감사, 오프라인·사용 중 건너뛰기 및 재시작·실패 시 중지를 적용합니다.",
-      "제한된 읽기 전용 logrotate/journald/Docker 설정 검사와 보존 안내를 추가했습니다. 스크립트 실행이나 전체 설정 공개 없이 관리 디렉터리, 정적 data-root, journal 파일과 Docker JSON 보관 로그를 미리보기와 실행에서 보호합니다.",
-      "Slack/Discord 형식을 추가하여 텍스트 크기, 멘션 및 링크 확장을 제한했습니다. 신뢰하는 HTTPS 릴레이 이메일 전달을 문서화했습니다. 비밀은 보호 설정에만 저장하며 SMTP 또는 원격 명령 기능을 내장하지 않습니다.",
-      "같은 노드와 경로의 보관 스캔을 시각과 함께 기록으로 재사용하며 새 작업이나 삭제 승인을 만들지 않습니다. 일정 소유권, 중복, 재시작, 감사 실패, 로그 보호, 설정 비공개, 수집 한도 및 5개 언어 데스크톱/모바일 화면을 검증했습니다. 실제 VPS와 알림 전송 검증은 별도로 필요합니다."
+      "격리된 Linux 스캔 안정성 도구를 CI와 배포 바이너리 검증에 추가했습니다. 항목 및 페이로드 한도, 취소 후 부분 결과와 재스캔을 확인합니다. 보고서에는 바이너리 SHA-256, 소요 시간, 샘플링한 RSS와 파일 디스크립터 최대값만 포함하며 자격 증명과 비공개 경로는 제외합니다.",
+      "선택적 백만 파일 및 지속 스캔 검증과 실제 호스트 검수표를 추가했습니다. 실제 VPS, arm64 하드웨어, 프로세스 가시성 제한, 디스크 부족 및 실제 알림 전송 검증은 남아 있습니다. 짧은 CI는 장기 안정성 증명이 아닙니다."
     ]
   }
 }

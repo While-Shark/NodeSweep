@@ -59,6 +59,7 @@ jobs:
           trap 'rm -rf -- "$folder"' EXIT
           tar -xzf release/nodesweep-linux-amd64.tar.gz -C "$folder"
           python3 scripts/smoke.py "$folder/nodesweep"
+          python3 scripts/stability.py "$folder/nodesweep"
       - uses: actions/upload-artifact@v4
         with:
           name: release-assets

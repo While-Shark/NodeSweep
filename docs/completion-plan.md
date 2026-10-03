@@ -23,3 +23,5 @@ The goal is a lightweight, usable release with explicit safety boundaries. A fea
 Explicit reuse of retained scans shows the scan timestamp and historical status, remains bounded by existing retention, and cannot authorize cleanup. Panel-version and additional rotation-pattern claims require fixtures or real-host evidence. Release workflows run for new checked commits, with no daily schedule.
 
 VPS acceptance requires an actual deployment. Cross-compilation, browser fixtures and short smoke tests do not establish real-host or long-running stability.
+
+Repeatable isolated scan/soak tooling and the host evidence matrix are in [acceptance.md](acceptance.md). The short test runs in CI and against the packaged amd64 binary; host matrix items remain pending until actual results are recorded.

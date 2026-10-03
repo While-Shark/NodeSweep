@@ -10,7 +10,7 @@ staging=$(mktemp -d)
 trap 'rm -rf -- "$staging"' EXIT
 for arch in amd64 arm64; do
   folder="$staging/nodesweep-linux-$arch"
-  mkdir -p "$folder/deploy" "$folder/docs"
+  mkdir -p "$folder/deploy" "$folder/docs" "$folder/scripts"
   CGO_ENABLED=0 GOOS=linux GOARCH="$arch" go build -trimpath \
     -ldflags="-s -w -X main.version=$version -X main.commit=$commit -X main.builtAt=$built_at" \
     -o "$folder/nodesweep" ./cmd/nodesweep
@@ -18,6 +18,7 @@ for arch in amd64 arm64; do
   cp deploy/nodesweep.service "$folder/deploy/"
   cp docs/*.md "$folder/docs/"
   cp docs/release-notes.json "$folder/docs/"
+  cp scripts/stability.py "$folder/scripts/"
   python3 scripts/release_notes.py > "$folder/docs/release-notes.md"
   cp -R docs/images "$folder/docs/"
   VERSION_VALUE="$version" COMMIT_VALUE="$commit" BUILD_TIME="$built_at" python3 - "$folder/build-info.json" <<'PY'

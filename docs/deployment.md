@@ -221,7 +221,7 @@ The hub stores the first accepted heartbeat per node per receipt minute, indepen
 
 Enable alerts and the separate **Notify cleanup failures** option to record failed or interrupted `execute` tasks created within the last 24 hours. Both controls default to off. Enabling the option can report recent failures; scans and previews are excluded. Records contain node name/ID, task ID, event kind and time. Raw task errors, rule/log paths, task results and credentials are omitted; inspect the authenticated task page for details. A failed execution may have deleted some files before failing. The notification never retries cleanup or authorizes another deletion.
 
-The existing `webhookURL` sends the same JSON event to a public HTTPS receiver, with `kind: "cleanup_failure"` and `task` holding the task ID. Private addresses, DNS rebinding and redirects remain blocked. No URL is exposed through the browser API. A custom relay can transform this JSON into an email or platform message; native SMTP and platform-specific adapters are not included yet. Configure relay credentials outside NodeSweep, and accept only the event fields your relay needs.
+The existing `webhookURL` sends the same JSON event to a public HTTPS receiver, with `kind: "cleanup_failure"` and `task` holding the task ID. Private addresses, DNS rebinding and redirects remain blocked. No URL is exposed through the browser API. A custom relay can transform this JSON into an email or platform message; native SMTP is not included; Slack and Discord adapters are available (see [notifications.md](notifications.md)). Configure relay credentials outside NodeSweep, and accept only the event fields your relay needs.
 
 Each pass processes at most ten unreported failures, within a 20-second processing context. The task stores a deduplication marker atomically with the event before sending. Restarting or receiving duplicate Agent results cannot replay the notification. Delivery failures are recorded without raw errors and are not retried automatically; a crash after recording may leave delivery incomplete. Events share the existing latest-100 retention, and the deduplication marker expires with the task's normal retention. Cleanup failures have no synthetic recovery event.
 
@@ -276,3 +276,7 @@ Application cleanup schedules are independent of releases. Release/nightly workf
 ## Retained scan reuse
 
 Disk analysis can explicitly load the latest retained terminal scan for the same node and requested directory, including partial failed scans. It labels the result as historical and shows the scan timestamp. Loading it creates no task and consumes no cleanup plan. The existing newest-ten-payload/30-day metadata policy bounds it; a pruned result is unavailable. A historical tree never authorizes deletion: create a new preview for cleanup.
+
+## Host acceptance
+
+See [acceptance.md](acceptance.md) for isolated scan stress/soak commands and the pending real-host evidence matrix. Release packages include the tool; it never connects to your installed Hub or authorizes cleanup.
