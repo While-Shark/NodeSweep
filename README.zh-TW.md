@@ -14,6 +14,8 @@
 
 歷史圖表涵蓋 CPU、記憶體、磁碟與 inode，有界保留最多七天。可獨立啟用清理失敗通知，沿用安全 HTTPS Webhook，不傳送原始錯誤與憑據。
 
+可設定獨立的唯讀、操作員及管理員憑據，由伺服器端驗證權限；管理員稽核有界保留，不記錄權杖或請求本文。詳見[部署說明](docs/deployment.md#independent-credentials-and-roles)。
+
 ## 功能
 
 掃描支援進度及取消，適用單機與已升級 Agent；條目、深度、時間及輸出大小由節點本機預算限制。不完整結果會明確標記，取消後保留部分樹圖。先升級管理端，再升級 Agent。剩餘工作見[完成目標](docs/completion-plan.md)。
@@ -90,7 +92,7 @@ Nightly 僅在 `master` 有新提交且 CI 通過後自動更新，供測試使�
 
 ## 安裝、報告與告警
 
-解壓後執行 `sudo bash install.sh --start`，或以 `sudo bash install.sh --download v0.1.0-alpha.7 --start` 校驗並下載指定版本。升級保留設定與標準停機狀態快照，啟動失敗恢復舊二進位檔。`--rollback` 只切換執行檔，不覆蓋目前設定和資料庫；自訂資料路徑需自行備份，舊快照確認後手動清理。
+解壓後執行 `sudo bash install.sh --start`，或以 `sudo bash install.sh --download v0.1.0-alpha.8 --start` 校驗並下載指定版本。升級保留設定與標準停機狀態快照，啟動失敗恢復舊二進位檔。`--rollback` 只切換執行檔，不覆蓋目前設定和資料庫；自訂資料路徑需自行備份，舊快照確認後手動清理。
 
 規則試執行解釋比對與排除原因，不建立可執行預覽。清理報告顯示逐檔結果、配置空間與時間，任務紀錄可查看失敗時的部分結果。
 

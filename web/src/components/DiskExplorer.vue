@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { canOperate } from "../access";
 import { t, systemText, scanReason } from "../i18n";
 import { ref, computed, onUnmounted } from "vue";
 import {
@@ -43,7 +44,7 @@ async function cancelScan() {
 }
 const current = computed(() => trail.value.at(-1));
 async function run() {
-  if (busy.value) return;
+  if (busy.value || !canOperate.value) return;
   taskID.value = "";
   progress.value = undefined;
   cancelRequested.value = false;
@@ -92,7 +93,7 @@ function open(e: Entry) {
         <label class="grow"
           >{{ t("扫描目录")
           }}<input v-model="path" placeholder="/var/log" required /></label
-        ><button class="primary" :disabled="busy">
+        ><button class="primary" :disabled="busy || !canOperate">
           {{ busy ? t("扫描中…") : t("扫描目录") }}
         </button>
       </form>

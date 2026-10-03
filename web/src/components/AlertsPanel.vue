@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { canAdmin } from "../access";
 import { ref, onMounted, onUnmounted } from "vue";
 import { api, date } from "../api";
 import { t, systemText } from "../i18n";
@@ -79,65 +80,69 @@ onUnmounted(() => clearInterval(timer));
   <section>
     <form class="card" @submit.prevent="save">
       <h2>{{ t("磁盘告警") }}</h2>
-      <label class="check"
-        ><input v-model="settings.enabled" type="checkbox" />{{
-          t("启用告警")
-        }}</label
-      >
-      <label class="check"
-        ><input v-model="settings.cleanupFailures" type="checkbox" />{{
-          t("通知清理失败")
-        }}</label
-      >
-      <div class="form-grid">
-        <label
-          >{{ t("磁盘使用阈值 (%)")
-          }}<input
-            v-model.number="settings.diskPercent"
-            type="number"
-            min="1"
-            max="100"
-            required
-        /></label>
-        <label
-          >{{ t("inode 使用阈值 (%)")
-          }}<input
-            v-model.number="settings.inodePercent"
-            type="number"
-            min="1"
-            max="100"
-            required
-        /></label>
-        <label
-          >{{ t("离线等待 (秒)")
-          }}<input
-            v-model.number="settings.offlineSeconds"
-            type="number"
-            min="45"
-            max="86400"
-            required
-        /></label>
-        <label
-          >{{ t("重复告警间隔 (秒)")
-          }}<input
-            v-model.number="settings.cooldownSeconds"
-            type="number"
-            min="60"
-            max="86400"
-            required
-        /></label>
-      </div>
-      <p class="hint">
-        {{
-          configured
-            ? t("Webhook 已配置")
-            : t("仅面板记录；在管理端配置文件添加 webhookURL 可发送通知。")
-        }}
-      </p>
-      <p class="hint">
-        {{ t("支持公开 HTTPS Webhook；私网地址和重定向会被拒绝。") }}
-      </p>
-      <button class="primary" :disabled="busy">{{ t("保存告警设置") }}</button>
+      <fieldset :disabled="!canAdmin">
+        <label class="check"
+          ><input v-model="settings.enabled" type="checkbox" />{{
+            t("启用告警")
+          }}</label
+        >
+        <label class="check"
+          ><input v-model="settings.cleanupFailures" type="checkbox" />{{
+            t("通知清理失败")
+          }}</label
+        >
+        <div class="form-grid">
+          <label
+            >{{ t("磁盘使用阈值 (%)")
+            }}<input
+              v-model.number="settings.diskPercent"
+              type="number"
+              min="1"
+              max="100"
+              required
+          /></label>
+          <label
+            >{{ t("inode 使用阈值 (%)")
+            }}<input
+              v-model.number="settings.inodePercent"
+              type="number"
+              min="1"
+              max="100"
+              required
+          /></label>
+          <label
+            >{{ t("离线等待 (秒)")
+            }}<input
+              v-model.number="settings.offlineSeconds"
+              type="number"
+              min="45"
+              max="86400"
+              required
+          /></label>
+          <label
+            >{{ t("重复告警间隔 (秒)")
+            }}<input
+              v-model.number="settings.cooldownSeconds"
+              type="number"
+              min="60"
+              max="86400"
+              required
+          /></label>
+        </div>
+        <p class="hint">
+          {{
+            configured
+              ? t("Webhook 已配置")
+              : t("仅面板记录；在管理端配置文件添加 webhookURL 可发送通知。")
+          }}
+        </p>
+        <p class="hint">
+          {{ t("支持公开 HTTPS Webhook；私网地址和重定向会被拒绝。") }}
+        </p>
+        <button class="primary" :disabled="busy">
+          {{ t("保存告警设置") }}
+        </button>
+      </fieldset>
       <p v-if="saved" class="success">{{ t("告警设置已保存") }}</p>
     </form>
     <p v-if="error" class="error">{{ systemText(error) }}</p>
@@ -198,3 +203,12 @@ onUnmounted(() => clearInterval(timer));
     </div>
   </section>
 </template>
+
+<style scoped>
+fieldset {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+}
+</style>

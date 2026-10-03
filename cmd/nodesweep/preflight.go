@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/While-Shark/NodeSweep/internal/agent"
 	"github.com/While-Shark/NodeSweep/internal/engine"
+	"github.com/While-Shark/NodeSweep/internal/hub"
 	"io"
 	"path/filepath"
 	"runtime"
@@ -42,12 +43,15 @@ func validateConfig(c Config) error {
 	}
 
 	if c.Mode == "agent" {
+		if len(c.AccessTokens) > 0 {
+			return errors.New("accessTokens are only supported on standalone or hub")
+		}
 		return agent.ValidateSettings(c.Hub, c.Node, c.Token)
 	}
 	if !validCredential(c.AdminToken) {
 		return errors.New("adminToken must contain at least 32 characters without outer whitespace")
 	}
-	return nil
+	return hub.ValidateAccess(c.AdminToken, c.AccessTokens)
 }
 
 // Local checks never start HTTP, open the database, send credentials or delete files.

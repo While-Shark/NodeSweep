@@ -1,6 +1,7 @@
 import type { MessageKey } from "./messages";
 // Known API diagnostics; unknown details remain available verbatim.
 export const errorKeys: Record<string, MessageKey> = {
+  "insufficient role permissions": "权限不足",
   "scan cancelled before dispatch": "扫描已取消",
   "only pending or running scans can be cancelled":
     "仅支持取消等待或运行中的扫描",

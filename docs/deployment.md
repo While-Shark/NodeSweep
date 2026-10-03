@@ -224,3 +224,23 @@ Enable alerts and the separate **Notify cleanup failures** option to record fail
 The existing `webhookURL` sends the same JSON event to a public HTTPS receiver, with `kind: "cleanup_failure"` and `task` holding the task ID. Private addresses, DNS rebinding and redirects remain blocked. No URL is exposed through the browser API. A custom relay can transform this JSON into an email or platform message; native SMTP and platform-specific adapters are not included yet. Configure relay credentials outside NodeSweep, and accept only the event fields your relay needs.
 
 Each pass processes at most ten unreported failures, within a 20-second processing context. The task stores a deduplication marker atomically with the event before sending. Restarting or receiving duplicate Agent results cannot replay the notification. Delivery failures are recorded without raw errors and are not retried automatically; a crash after recording may leave delivery incomplete. Events share the existing latest-100 retention, and the deduplication marker expires with the task's normal retention. Cleanup failures have no synthetic recovery event.
+
+### Independent credentials and roles
+
+`adminToken` remains the primary administrator credential. On the hub or standalone instance, optionally configure `accessTokens` as a list of `{ "name": "observer", "role": "viewer", "token": "<a-new-random-token-of-at-least-32-characters>" }` objects. Supported roles are `viewer`, `operator`, and `admin`; at most 32 additional identities are accepted. Names and tokens must be unique, and `admin` is reserved for the primary credential's name. Generate a separate strong random token for each identity; protect the configuration with mode `0600`, restart after edits, and remove or rotate a credential to revoke it. Agent configurations cannot contain dashboard access tokens. No credential is returned by the session, node or audit APIs.
+
+| Role | Allowed operations |
+| --- | --- |
+| Viewer | Read nodes, metric history, rules/export, task details and alerts |
+| Operator | Viewer access plus creation of scan, check, detection, preview and execution tasks; cancel scans |
+| Administrator | Operator access plus node/rule/alert settings and the audit trail |
+
+Roles apply to the entire hub, including all nodes and stored paths. This is not per-node or tenant isolation. Operators can permanently delete eligible archives through a fresh preview, so grant the role deliberately. The browser identifies the current role and disables unavailable actions; server authorization remains authoritative even when requests are made outside the UI. Tokens stay in browser memory and are not saved locally. All externally accessible sessions require HTTPS.
+
+`GET /api/session` identifies the authenticated role and configured identity name. The additional credentials are read from local protected configuration; neither agents nor the Web UI can expand the credential list. An older binary rejects `accessTokens`, so remove that field before rolling back.
+
+### Audit semantics
+
+The administrator-only audit page and `GET /api/audit` report authenticated mutation requests and role denials. The hub records the configured actor name, role, route category, a validated target ID when present, receipt time and HTTP outcome. It excludes credentials, request bodies, log contents, raw paths, URLs and query strings. Invalid credentials do not allocate audit entries. Node/rule/task actions are recorded as request categories such as `nodes.post`, `rules.delete` or `tasks.cancel`.
+
+A durable accepted entry is written before processing a mutation. If this write fails, the mutation is refused. The HTTP result is added afterwards; status `0` explicitly means the outcome was not recorded (for example, a crash or a failed final write). HTTP `200` for a task means the task was accepted, not that deletion succeeded: inspect the separate task record for its eventual execution result. Audit entries are bounded to the latest 1,000 and at most 30 days when new entries arrive. They survive hub restarts and cannot be deleted through the Web API. Retention reuses SQLite storage; this is a protected local operational log, not cryptographic tamper evidence against the host administrator.

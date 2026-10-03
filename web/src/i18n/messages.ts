@@ -1184,5 +1184,32 @@ export const messages = {
     "전송 미완료",
     "通知未完成",
   ],
+  访问令牌: ["Access token", "アクセストークン", "액세스 토큰", "存取權杖"],
+  "配置文件中的 adminToken 或 accessTokens": [
+    "adminToken or accessTokens from your configuration",
+    "設定ファイルのadminTokenまたはaccessTokens",
+    "설정 파일의 adminToken 또는 accessTokens",
+    "設定檔中的 adminToken 或 accessTokens",
+  ],
+  管理员: ["Administrator", "管理者", "관리자", "管理員"],
+  操作员: ["Operator", "オペレーター", "운영자", "操作員"],
+  只读: ["Read only", "読み取り専用", "읽기 전용", "唯讀"],
+  操作审计: ["Audit trail", "操作監査", "작업 감사", "操作稽核"],
+  操作人: ["Actor", "操作ユーザー", "작업자", "操作人"],
+  角色: ["Role", "ロール", "역할", "角色"],
+  目标编号: ["Target ID", "対象ID", "대상 ID", "目標編號"],
+  结果未记录: ["Outcome unrecorded", "結果未記録", "결과 미기록", "結果未記錄"],
+  "最多保留 1000 条、30 天；不记录令牌或请求正文。": [
+    "Up to 1,000 entries for 30 days; tokens and request bodies are excluded.",
+    "最大1,000件・30日間保存。トークンとリクエスト本文は記録しません。",
+    "최대 1,000개를 30일 보관하며 토큰과 요청 본문은 기록하지 않습니다.",
+    "最多保留 1000 筆、30 天；不記錄權杖或請求本文。",
+  ],
+  权限不足: [
+    "Insufficient permissions",
+    "権限が不足しています",
+    "권한이 부족합니다",
+    "權限不足",
+  ],
 } as const;
 export type MessageKey = keyof typeof messages;

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { canAdmin, canOperate } from "../access";
 import { computed, onUnmounted, ref, watch } from "vue";
 import {
   api,
@@ -211,7 +212,7 @@ async function run(kind: "scan" | "preview") {
               <td>{{ n.group || t("未分组") }}</td>
               <td>{{ online(n) ? t("在线") : t("离线") }}</td>
               <td>
-                <button :disabled="busy" @click="edit(n)">
+                <button :disabled="busy || !canAdmin" @click="edit(n)">
                   {{ t("编辑节点") }}
                 </button>
               </td>
@@ -227,7 +228,12 @@ async function run(kind: "scan" | "preview") {
           }}<input v-model="path" :disabled="busy" maxlength="4096" /></label
         ><button
           class="primary"
-          :disabled="busy || !selectedOnline.length || !path.startsWith('/')"
+          :disabled="
+            busy ||
+            !canOperate ||
+            !selectedOnline.length ||
+            !path.startsWith('/')
+          "
           @click="run('scan')"
         >
           {{ t("批量扫描") }}
@@ -242,7 +248,7 @@ async function run(kind: "scan" | "preview") {
             </option>
           </select></label
         ><button
-          :disabled="busy || !selectedOnline.length || !ruleID"
+          :disabled="busy || !canOperate || !selectedOnline.length || !ruleID"
           @click="run('preview')"
         >
           {{ t("批量预览") }}

@@ -23,6 +23,7 @@ import (
 )
 
 type Config struct {
+	AccessTokens []hub.AccessToken `json:"accessTokens,omitempty"`
 	ScanBudget   engine.ScanBudget `json:"scanBudget,omitempty,omitzero"`
 	WebhookURL   string            `json:"webhookURL,omitempty"`
 	Mode         string            `json:"mode"`
@@ -118,7 +119,7 @@ func run() error {
 	if err != nil {
 		return err
 	}
-	h := &hub.Hub{Store: s, Token: c.AdminToken, Context: ctx, Alerts: notifications}
+	h := &hub.Hub{Store: s, Token: c.AdminToken, AccessTokens: c.AccessTokens, Context: ctx, Alerts: notifications}
 	var background sync.WaitGroup
 	defer func() { cancelWork(); h.Wait(); background.Wait() }()
 	background.Add(1)

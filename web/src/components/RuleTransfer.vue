@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { canAdmin } from "../access";
 import { t, systemText } from "../i18n";
 import { ref } from "vue";
 import { api } from "../api";
@@ -41,7 +42,7 @@ async function readFile(event: Event) {
   const input = event.target as HTMLInputElement;
   const file = input.files?.[0];
   input.value = "";
-  if (!file || props.disabled) return;
+  if (!file || props.disabled || !canAdmin.value) return;
   working.value = true;
   error.value = "";
   try {
@@ -93,7 +94,10 @@ async function readFile(event: Event) {
           </option>
         </select></label
       >
-      <button :disabled="disabled || working" @click="fileInput?.click()">
+      <button
+        :disabled="disabled || working || !canAdmin"
+        @click="fileInput?.click()"
+      >
         {{ t("导入方案") }}
       </button>
       <button :disabled="disabled || working || !hasRules" @click="exportRules">

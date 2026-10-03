@@ -103,6 +103,7 @@ const server = http.createServer((req, res) => {
       let fixtureNodes = [node];
       const submitted = [];
       let cancellableScan = false;
+      let fixtureRole = "admin";
       let holdDetail = false,
         releaseDetail,
         notifyHeld;
@@ -134,6 +135,18 @@ const server = http.createServer((req, res) => {
               cpu: 80,
               memory: 50,
               disks: [{ path: "/", used: 61, inodes: 11 }],
+            },
+          ]);
+        if (endpoint === "session") return send({ role: fixtureRole });
+        if (endpoint === "audit")
+          return send([
+            {
+              id: 1,
+              at: new Date().toISOString(),
+              actor: "runner",
+              role: "operator",
+              action: "tasks.post",
+              status: 200,
             },
           ]);
         if (endpoint === "nodes")
@@ -706,7 +719,7 @@ const server = http.createServer((req, res) => {
       assert.equal(submitted.length - leaveStart, 2);
       for (const width of [390, 360]) {
         await page.setViewportSize({ width, height: 844 });
-        for (let i = 0; i < 6; i++) {
+        for (let i = 0; i < 7; i++) {
           await page.locator("aside nav button").nth(i).click();
           const overflow = await page.evaluate(
             () => document.documentElement.scrollWidth > innerWidth + 1,
@@ -721,6 +734,78 @@ const server = http.createServer((req, res) => {
       await page.locator(".login").waitFor();
       assert.equal(await page.locator(".error").count(), 0);
       assert.equal(await page.locator("input[type=password]").inputValue(), "");
+      for (const testedRole of ["viewer", "operator"]) {
+        fixtureRole = testedRole;
+        await page
+          .locator("input[type=password]")
+          .fill(testedRole + "-fixture");
+        await page
+          .getByRole("button", {
+            name: label(locale, "进入控制台 →"),
+            exact: true,
+          })
+          .click();
+        await page.locator(".app-shell").waitFor();
+        assert.equal(
+          await page
+            .getByRole("button", {
+              name: label(locale, "添加节点"),
+              exact: false,
+            })
+            .count(),
+          0,
+        );
+        assert.equal(
+          await page
+            .getByRole("button", {
+              name: label(locale, "操作审计"),
+              exact: false,
+            })
+            .count(),
+          0,
+        );
+        await page.locator("aside nav button").nth(1).click();
+        assert.equal(
+          await page
+            .getByRole("button", {
+              name: label(locale, "扫描目录"),
+              exact: true,
+            })
+            .isDisabled(),
+          testedRole === "viewer",
+        );
+        await page.locator("aside nav button").nth(2).click();
+        await page.locator(".rule-row").first().waitFor();
+        assert.equal(
+          await page
+            .getByRole("button", { name: label(locale, "编辑"), exact: true })
+            .first()
+            .isDisabled(),
+          true,
+        );
+        assert.equal(await page.locator(".rule-form").count(), 0);
+        assert.equal(
+          await page
+            .getByRole("button", {
+              name: label(locale, "预览清理"),
+              exact: true,
+            })
+            .first()
+            .isDisabled(),
+          testedRole === "viewer",
+        );
+        await page.locator("aside nav button").nth(4).click();
+        await page.locator(".form-grid").waitFor();
+        assert.equal(
+          await page.locator("form input[type=checkbox]").first().isDisabled(),
+          true,
+        );
+        await page
+          .getByRole("button", { name: label(locale, "退出登录"), exact: true })
+          .click();
+        await page.locator(".login").waitFor();
+      }
+      fixtureRole = "admin";
       await page.reload();
       await page.locator(".login").waitFor();
       assert.equal(await page.locator("html").getAttribute("lang"), locale); // Saved preference.

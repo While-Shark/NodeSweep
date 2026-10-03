@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { canOperate } from "../access";
 import { t, systemText, taskKind, taskStatus } from "../i18n";
 import { onMounted, onUnmounted, ref } from "vue";
 import CleanupReport from "./CleanupReport.vue";
@@ -8,6 +9,7 @@ import { api, date, size, type Task } from "../api";
 const props = defineProps<{ nodes: Node[] }>();
 const cancelling = ref("");
 function canCancel(job: Task) {
+  if (!canOperate.value) return false;
   return (
     job.request.kind === "scan" &&
     ["pending", "running"].includes(job.status) &&

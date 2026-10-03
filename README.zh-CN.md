@@ -14,6 +14,8 @@
 
 历史图表覆盖 CPU、内存、磁盘和 inode，有界保留最多七天。可单独启用清理失败通知，复用安全 HTTPS Webhook，不发送原始错误和凭据。
 
+可配置独立的只读、操作员及管理员凭据，权限由服务端校验；管理员审计有界保留，不记录令牌或请求正文。详见[部署说明](docs/deployment.md#independent-credentials-and-roles)。
+
 ## 界面预览
 
 ![磁盘分析界面](docs/images/disk-analysis.png)
@@ -146,7 +148,7 @@ Nightly 仅在 master 有新提交且 CI 通过后自动更新，供测试使用
 
 ## 安装、报告与告警
 
-解压后运行 `sudo bash install.sh --start`。也可用 `sudo bash install.sh --download v0.1.0-alpha.7 --start` 校验并安装指定版本，测试可选择 nightly。升级保留配置、备份标准停机状态，启动失败自动恢复旧二进制；`--rollback` 只切换二进制，不覆盖当前数据库与配置。自定义数据路径需自行备份，旧快照需确认后手动清理。
+解压后运行 `sudo bash install.sh --start`。也可用 `sudo bash install.sh --download v0.1.0-alpha.8 --start` 校验并安装指定版本，测试可选择 nightly。升级保留配置、备份标准停机状态，启动失败自动恢复旧二进制；`--rollback` 只切换二进制，不覆盖当前数据库与配置。自定义数据路径需自行备份，旧快照需确认后手动清理。
 
 规则试运行解释匹配和排除原因，不创建可执行预览；清理报告显示逐文件结果、分配空间与执行时间，失败任务的部分结果可在任务记录查看。分配空间不等于磁盘可用空间净增加。
 

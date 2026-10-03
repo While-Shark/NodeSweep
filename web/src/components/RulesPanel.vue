@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { canAdmin, canOperate } from "../access";
 import ReviewDetails from "./ReviewDetails.vue";
 import CleanupReport from "./CleanupReport.vue";
 import type { CleanupResult } from "../api";
@@ -180,7 +181,7 @@ onMounted(() => action(reload));
         <h2>{{ t("清理方案") }}</h2>
         <p>{{ t("内置规则快速开始，自定义方案适配自己的服务。") }}</p>
       </div>
-      <button :disabled="busy" @click="detect">
+      <button :disabled="busy || !canOperate" @click="detect">
         {{ t("识别服务器环境") }}
       </button>
     </div>
@@ -211,7 +212,7 @@ onMounted(() => action(reload));
             }}</small
           >
         </div>
-        <button :disabled="busy || !p.detected" @click="adopt(p)">
+        <button :disabled="busy || !p.detected || !canAdmin" @click="adopt(p)">
           {{ t("添加方案") }}
         </button>
       </div>
@@ -233,13 +234,13 @@ onMounted(() => action(reload));
           <div class="toolbar spread">
             <h3>{{ schemeLabel(scheme, group) }}</h3>
             <button
-              :disabled="busy || !online(node)"
+              :disabled="busy || !online(node) || !canOperate"
               @click="trial(group || [])"
             >
               {{ t("规则试运行") }}</button
             ><button
               class="primary"
-              :disabled="busy"
+              :disabled="busy || !canOperate"
               @click="preview(scheme, group || [])"
             >
               {{ t("预览清理") }}
@@ -255,9 +256,10 @@ onMounted(() => action(reload));
                 }}</small
               >
             </div>
-            <button :disabled="busy" @click="edit(rule)">{{ t("编辑") }}</button
+            <button :disabled="busy || !canAdmin" @click="edit(rule)">
+              {{ t("编辑") }}</button
             ><button
-              :disabled="busy"
+              :disabled="busy || !canAdmin"
               @click="
                 action(async () => {
                   await api('rules/' + rule.id, 'DELETE');
@@ -274,7 +276,7 @@ onMounted(() => action(reload));
           <p>{{ t("识别服务器环境，或在右侧创建第一条规则。") }}</p>
         </div>
       </div>
-      <form class="card rule-form" @submit.prevent="save">
+      <form v-if="canAdmin" class="card rule-form" @submit.prevent="save">
         <h3>{{ draft.id ? t("编辑规则") : t("自定义规则") }}</h3>
         <label
           >{{ t("所属方案")
@@ -367,7 +369,9 @@ onMounted(() => action(reload));
         }}</label
       ><button
         class="danger"
-        :disabled="busy || !confirm || !plans.some((p) => p.files.length)"
+        :disabled="
+          busy || !canOperate || !confirm || !plans.some((p) => p.files.length)
+        "
         @click="execute"
       >
         {{ t("执行已预览的方案") }}

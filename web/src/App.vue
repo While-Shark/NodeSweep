@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { canAdmin, role, setRole, type Role } from "./access";
+import AuditPanel from "./components/AuditPanel.vue";
 import { t, systemText } from "./i18n";
 import { ref, computed, onUnmounted } from "vue";
 import { api, setToken, online, type Node } from "./api";
@@ -37,8 +39,12 @@ async function login() {
   const generation = ++authGeneration;
   loggingIn.value = true;
   error.value = "";
+  setRole("viewer");
   setToken(password.value);
   try {
+    const session = await api<{ role: Role }>("session");
+    if (generation !== authGeneration) return;
+    setRole(session.role);
     await reload();
     if (generation !== authGeneration) return;
     logged.value = true;
@@ -70,6 +76,7 @@ function logout() {
   password.value = "";
   error.value = "";
   setToken("");
+  setRole("viewer");
   logged.value = false;
   nodes.value = [];
   selected.value = "";
@@ -102,13 +109,13 @@ onUnmounted(logout);
       <h1>{{ t("服务器空间管理") }}</h1>
       <p>{{ t("连接你的节点，让每一份磁盘空间都有迹可循。") }}</p>
       <label
-        >{{ t("管理员访问令牌")
+        >{{ t("访问令牌")
         }}<input
           v-model="password"
           type="password"
           required
           autocomplete="current-password"
-          :placeholder="t('配置文件中的 adminToken')"
+          :placeholder="t('配置文件中的 adminToken 或 accessTokens')"
       /></label>
       <p v-if="error" class="error" role="alert">{{ systemText(error) }}</p>
       <button class="primary" :disabled="loggingIn">
@@ -140,11 +147,29 @@ onUnmounted(logout);
         ><button :class="{ active: page === 'batch' }" @click="page = 'batch'">
           ▤　{{ t("批量操作") }}
         </button>
+        <button
+          v-if="canAdmin"
+          :class="{ active: page === 'audit' }"
+          @click="page = 'audit'"
+        >
+          ≡　{{ t("操作审计") }}
+        </button>
       </nav>
       <div class="sidebar-bottom">
         <span class="status up">{{
           t("{count} 个节点在线", { count: nodes.filter(online).length })
         }}</span>
+        <p>
+          {{
+            t(
+              role === "admin"
+                ? "管理员"
+                : role === "operator"
+                  ? "操作员"
+                  : "只读",
+            )
+          }}
+        </p>
         <p>NodeSweep / v0.1 alpha</p>
         <button @click="logout">{{ t("退出登录") }}</button>
       </div>
@@ -165,12 +190,18 @@ onUnmounted(logout);
                       ? t("批量操作")
                       : page === "alerts"
                         ? t("磁盘告警")
-                        : t("任务记录")
+                        : page === "audit"
+                          ? t("操作审计")
+                          : t("任务记录")
             }}
           </h1>
         </div>
         <div class="header-actions">
-          <LanguagePicker /><button class="primary" @click="enrolling = true">
+          <LanguagePicker /><button
+            v-if="canAdmin"
+            class="primary"
+            @click="enrolling = true"
+          >
             ＋ {{ t("添加节点") }}
           </button>
         </div>
@@ -189,7 +220,7 @@ onUnmounted(logout);
           </select></label
         ><span v-if="current" class="hint">{{ current.metrics.host }}</span
         ><button
-          v-if="current && current.id !== 'local'"
+          v-if="canAdmin && current && current.id !== 'local'"
           @click="revoking = true"
         >
           {{ t("撤销节点") }}
@@ -212,6 +243,7 @@ onUnmounted(logout);
         @changed="reload"
         @select="select"
       />
+      <AuditPanel v-else-if="page === 'audit' && canAdmin" />
       <TaskHistory v-else-if="page === 'tasks'" :nodes="nodes" /><AlertsPanel
         v-else-if="page === 'alerts'"
       />
@@ -220,8 +252,12 @@ onUnmounted(logout);
       </div>
       <footer>NodeSweep · {{ t("看清占用，安心清理") }}</footer>
     </main>
-    <EnrollNode v-if="enrolling" @close="enrolling = false" @added="reload" />
-    <div v-if="revoking" class="modal-backdrop">
+    <EnrollNode
+      v-if="enrolling && canAdmin"
+      @close="enrolling = false"
+      @added="reload"
+    />
+    <div v-if="revoking && canAdmin" class="modal-backdrop">
       <div class="modal card">
         <h2>{{ t("撤销 {name}？", { name: current?.name || "" }) }}</h2>
         <p>

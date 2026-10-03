@@ -24,16 +24,17 @@ import (
 )
 
 type Hub struct {
-	Alerts   *alerts.Service
-	Store    *store.Store
-	Engine   *engine.Engine
-	Token    string
-	mu       sync.Mutex
-	cancels  map[string]context.CancelFunc
-	Context  context.Context
-	workers  sync.WaitGroup
-	stopping bool
-	polls    pollGate
+	AccessTokens []AccessToken
+	Alerts       *alerts.Service
+	Store        *store.Store
+	Engine       *engine.Engine
+	Token        string
+	mu           sync.Mutex
+	cancels      map[string]context.CancelFunc
+	Context      context.Context
+	workers      sync.WaitGroup
+	stopping     bool
+	polls        pollGate
 }
 
 func Hash(s string) string   { b := sha256.Sum256([]byte(s)); return hex.EncodeToString(b[:]) }
@@ -71,14 +72,7 @@ func decodeLimit(w http.ResponseWriter, r *http.Request, v any, limit int64) err
 func (h *Hub) Handler(assets fs.FS) http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /agent/poll", h.poll)
-	mux.HandleFunc("/api/", func(w http.ResponseWriter, r *http.Request) {
-		credential := bearer(r.Header.Get("Authorization"))
-		if len(h.Token) < 32 || credential == "" || !equal(Hash(credential), Hash(h.Token)) {
-			fail(w, errors.New("invalid administrator token"), 401)
-			return
-		}
-		h.api(w, r)
-	})
+	mux.HandleFunc("/api/", h.authenticatedAPI)
 	mux.Handle("/", http.FileServerFS(assets))
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("X-Content-Type-Options", "nosniff")
@@ -92,6 +86,13 @@ func (h *Hub) Handler(assets fs.FS) http.Handler {
 func (h *Hub) api(w http.ResponseWriter, r *http.Request) {
 	p := strings.TrimPrefix(r.URL.Path, "/api/")
 	switch {
+	case p == "audit" && r.Method == "GET":
+		entries, err := h.Store.Audit()
+		if err != nil {
+			fail(w, err, 500)
+			return
+		}
+		reply(w, entries)
 	case p == "alerts" && r.Method == "GET":
 		if h.Alerts == nil {
 			fail(w, errors.New("alerts unavailable"), 503)
