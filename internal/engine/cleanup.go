@@ -66,6 +66,13 @@ func (e *Engine) review(ctx context.Context, r Rule, save bool) (Plan, error) {
 	if err != nil {
 		return plan, err
 	}
+	protected := managedLogRoots()
+	if e.managedRoots != nil {
+		protected = e.managedRoots()
+	}
+	if managedLogPath(p, protected) {
+		return plan, errors.New("managed logs require native retention tools")
+	}
 	if p == "/" {
 		return plan, errors.New("filesystem root cannot be a cleanup root")
 	}
@@ -105,7 +112,7 @@ func (e *Engine) review(ctx context.Context, r Rule, save bool) (Plan, error) {
 			record(rel, "symlink", "")
 			return nil
 		}
-		if strings.HasPrefix(d.Name(), ".nodesweep-") || match(d.Name(), r.Excludes) {
+		if managedLogPath(filepath.Join(p, rel), protected) || strings.HasPrefix(d.Name(), ".nodesweep-") || match(d.Name(), r.Excludes) {
 			record(rel, "excluded", "")
 			if d.IsDir() {
 				return fs.SkipDir
@@ -215,6 +222,13 @@ func (e *Engine) execute(ctx context.Context, id string) (result CleanupResult, 
 	if err = noSymlinks(path); err != nil {
 		return result, err
 	}
+	protected := managedLogRoots()
+	if e.managedRoots != nil {
+		protected = e.managedRoots()
+	}
+	if managedLogPath(path, protected) {
+		return result, errors.New("managed logs require native retention tools")
+	}
 	root, err := openDirectory(path)
 	if err != nil {
 		return result, err
@@ -227,6 +241,10 @@ func (e *Engine) execute(ctx context.Context, id string) (result CleanupResult, 
 	for _, c := range p.Files {
 		if ctx.Err() != nil {
 			return result, ctx.Err()
+		}
+		if managedLogPath(filepath.Join(path, c.Path), protected) {
+			skip(c.Path, "skipped", "managed logs require native retention tools")
+			continue
 		}
 		if err := noSymlinks(filepath.Join(path, c.Path)); err != nil {
 			skip(c.Path, "skipped", "path changed")

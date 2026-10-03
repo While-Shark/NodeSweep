@@ -24,7 +24,7 @@ func ValidateRequest(r Request) error {
 		if !ValidID(r.PlanID) {
 			return errors.New("invalid preview identifier")
 		}
-	case "detect":
+	case "detect", "rotation":
 	default:
 		return errors.New("unsupported operation")
 	}

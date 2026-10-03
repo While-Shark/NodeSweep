@@ -16,6 +16,7 @@ import (
 
 type Store struct{ DB *sql.DB }
 type Node struct {
+	LogChecks   bool           `json:"logChecks"`
 	ScanControl bool           `json:"scanControl"`
 	ID          string         `json:"id"`
 	Name        string         `json:"name"`
@@ -61,6 +62,7 @@ func Open(path string) (*Store, error) {
 	_, err = db.Exec(`PRAGMA journal_mode=WAL; PRAGMA busy_timeout=5000;
  CREATE TABLE IF NOT EXISTS audit_events(id INTEGER PRIMARY KEY AUTOINCREMENT,at TEXT NOT NULL,body TEXT NOT NULL);
  CREATE TABLE IF NOT EXISTS nodes(id TEXT PRIMARY KEY,name TEXT NOT NULL,token TEXT NOT NULL,body TEXT NOT NULL);
+ CREATE TABLE IF NOT EXISTS schedules(id TEXT PRIMARY KEY,body TEXT NOT NULL);
  CREATE TABLE IF NOT EXISTS rules(id TEXT PRIMARY KEY,body TEXT NOT NULL);
  CREATE TABLE IF NOT EXISTS tasks(id TEXT PRIMARY KEY,node TEXT NOT NULL,status TEXT NOT NULL,created TEXT NOT NULL,body TEXT NOT NULL);
  CREATE INDEX IF NOT EXISTS tasks_queue ON tasks(node,status,created);
@@ -82,6 +84,12 @@ func Open(path string) (*Store, error) {
 		return nil, err
 	}
 
+	// Unattended deletion never resumes automatically after a restart. A new
+	// review is required; task records retain any uncertain in-flight outcome.
+	if _, err = db.Exec(`UPDATE schedules SET body=json_set(body,'$.enabled',json('false'),'$.phase','','$.outcome','restart_review_required')`); err != nil {
+		db.Close()
+		return nil, err
+	}
 	return s, nil
 }
 func (s *Store) Nodes() ([]Node, error) {
@@ -132,7 +140,8 @@ func (s *Store) UpdateNode(n Node) error {
  "$.metrics",json_extract(?,"$.metrics"),
  "$.roots",json_extract(?,"$.roots"),
  "$.scanRoots",json_extract(?,"$.scanRoots"),
- "$.scanControl",json(CASE json_extract(?,"$.scanControl") WHEN 1 THEN 'true' ELSE 'false' END)) WHERE id=?`, string(b), string(b), string(b), string(b), string(b), n.ID)
+ "$.logChecks",json(CASE json_extract(?,"$.logChecks") WHEN 1 THEN 'true' ELSE 'false' END),
+ "$.scanControl",json(CASE json_extract(?,"$.scanControl") WHEN 1 THEN 'true' ELSE 'false' END)) WHERE id=?`, string(b), string(b), string(b), string(b), string(b), string(b), n.ID)
 	if e != nil {
 		return e
 	}
@@ -169,6 +178,9 @@ func (s *Store) DeleteNode(id string) error {
 	}
 	defer tx.Rollback()
 	if _, err = tx.Exec("DELETE FROM metric_samples WHERE node=?", id); err != nil {
+		return err
+	}
+	if _, err = tx.Exec(`UPDATE schedules SET body=json_set(body,'$.enabled',json('false'),'$.phase','','$.outcome','revoked') WHERE json_extract(body,'$.node')=?`, id); err != nil {
 		return err
 	}
 	if _, err = tx.Exec("DELETE FROM nodes WHERE id=?", id); err != nil {

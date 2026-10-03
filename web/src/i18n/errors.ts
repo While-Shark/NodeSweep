@@ -1,6 +1,16 @@
 import type { MessageKey } from "./messages";
 // Known API diagnostics; unknown details remain available verbatim.
 export const errorKeys: Record<string, MessageKey> = {
+  没有保留的扫描结果: "没有保留的扫描结果",
+  "fresh matching preview required": "需要新的匹配预览",
+  "review and explicit scheduled deletion confirmation required":
+    "请核对并明确确认自动删除",
+  "schedule interval must be 1–720 hours": "计划间隔必须为 1–720 小时",
+  "schedule not found": "计划不存在",
+  "schedule limit reached or storage unavailable": "计划达到上限或存储不可用",
+  "agent upgrade required for log checks": "请升级 Agent 后使用日志检查",
+  "managed logs require native retention tools": "受管理日志需使用原生保留工具",
+
   "insufficient role permissions": "权限不足",
   "scan cancelled before dispatch": "扫描已取消",
   "only pending or running scans can be cancelled":

@@ -12,6 +12,7 @@ import (
 	"io/fs"
 	"log"
 	"net/http"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -86,6 +87,8 @@ func (h *Hub) Handler(assets fs.FS) http.Handler {
 func (h *Hub) api(w http.ResponseWriter, r *http.Request) {
 	p := strings.TrimPrefix(r.URL.Path, "/api/")
 	switch {
+	case p == "schedules" || strings.HasPrefix(p, "schedules/"):
+		h.schedulesAPI(w, r)
 	case p == "audit" && r.Method == "GET":
 		entries, err := h.Store.Audit()
 		if err != nil {
@@ -108,7 +111,7 @@ func (h *Hub) api(w http.ResponseWriter, r *http.Request) {
 			fail(w, e, 500)
 			return
 		}
-		reply(w, map[string]any{"settings": settings, "events": events, "webhookConfigured": h.Alerts.Webhook != ""})
+		reply(w, map[string]any{"settings": settings, "events": events, "webhookConfigured": h.Alerts.Webhook != "", "webhookFormat": h.Alerts.Format})
 	case p == "alerts" && r.Method == "PUT":
 		if h.Alerts == nil {
 			fail(w, errors.New("alerts unavailable"), 503)
@@ -124,6 +127,23 @@ func (h *Hub) api(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		reply(w, map[string]bool{"ok": true})
+	case strings.HasPrefix(p, "scans/") && r.Method == "GET":
+		node := strings.TrimPrefix(p, "scans/")
+		path := r.URL.Query().Get("path")
+		if !filepath.IsAbs(path) || len(path) > 4096 || strings.ContainsRune(path, 0) {
+			fail(w, errors.New("absolute path required"), 400)
+			return
+		}
+		if _, err := h.Store.Node(node); err != nil {
+			fail(w, errors.New("node not found"), 404)
+			return
+		}
+		scan, err := h.Store.LatestScan(node, path)
+		if err != nil {
+			fail(w, err, 500)
+			return
+		}
+		reply(w, scan)
 	case strings.HasPrefix(p, "metrics/") && r.Method == "GET":
 		node := strings.TrimPrefix(p, "metrics/")
 		if _, err := h.Store.Node(node); errors.Is(err, sql.ErrNoRows) {
@@ -346,6 +366,10 @@ func (h *Hub) api(w http.ResponseWriter, r *http.Request) {
 			fail(w, errors.New("node offline"), 409)
 			return
 		}
+		if b.Request.Kind == "rotation" && !n.LogChecks {
+			fail(w, errors.New("agent upgrade required for log checks"), 409)
+			return
+		}
 		if e := engine.ValidateRequest(b.Request); e != nil {
 			fail(w, e, 400)
 			return
@@ -420,7 +444,11 @@ func (h *Hub) LocalMetrics(ctx context.Context) {
 	}
 	sampler := engine.Sampler{}
 	for {
-		n := store.Node{ID: "local", Name: "本机", ScanControl: true, LastSeen: time.Now(), Metrics: sampler.Read(), Roots: h.Engine.Roots, ScanRoots: h.Engine.ScanRoots}
+		metrics := sampler.ReadContext(ctx)
+		if ctx.Err() != nil {
+			return
+		}
+		n := store.Node{ID: "local", Name: "本机", LogChecks: true, ScanControl: true, LastSeen: time.Now(), Metrics: metrics, Roots: h.Engine.Roots, ScanRoots: h.Engine.ScanRoots}
 		if err := h.Store.UpdateNode(n); err != nil {
 			log.Print(err)
 		}
@@ -433,6 +461,7 @@ func (h *Hub) LocalMetrics(ctx context.Context) {
 }
 
 type Poll struct {
+	LogChecks   bool                 `json:"logChecks,omitempty"`
 	ScanControl bool                 `json:"scanControl,omitempty"`
 	TaskID      string               `json:"taskId,omitempty"`
 	Progress    *engine.ScanProgress `json:"progress,omitempty"`
@@ -479,6 +508,7 @@ func (h *Hub) poll(w http.ResponseWriter, r *http.Request) {
 		fail(w, e, 404)
 		return
 	}
+	n.LogChecks = b.LogChecks
 	n.ScanControl = b.ScanControl
 	n.LastSeen = time.Now()
 	n.Metrics = b.Metrics

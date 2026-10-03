@@ -116,6 +116,7 @@ export function taskKind(kind: string): string {
     preview: "清理预览",
     execute: "执行清理",
     detect: "环境识别",
+    rotation: "日志轮转检查",
   };
   return Object.hasOwn(keys, kind) ? t(keys[kind]) : kind;
 }

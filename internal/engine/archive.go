@@ -11,6 +11,9 @@ const timestampLogPattern = "*-????-??-??T??-??-??.???.log"
 const timestampLogLayout = "2006-01-02T15-04-05.000"
 
 func archived(name string) bool {
+	if strings.Contains(name, "-json.log.") || strings.Contains(name, ".journal") {
+		return false
+	}
 	if strings.HasSuffix(name, ".gz") || strings.HasSuffix(name, ".xz") || strings.HasSuffix(name, ".bz2") {
 		return true
 	}

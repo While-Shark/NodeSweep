@@ -31,6 +31,7 @@ const settings = ref<Settings>({
   cooldownSeconds: 1800,
 });
 const events = ref<Alert[]>([]);
+const format = ref("event");
 const configured = ref(false),
   busy = ref(false),
   error = ref(""),
@@ -41,9 +42,11 @@ async function history() {
     settings: Settings;
     events: Alert[];
     webhookConfigured: boolean;
+    webhookFormat?: string;
   }>("alerts");
   events.value = data.events;
   configured.value = data.webhookConfigured;
+  format.value = data.webhookFormat || "event";
   return data;
 }
 async function load() {
@@ -132,7 +135,7 @@ onUnmounted(() => clearInterval(timer));
         <p class="hint">
           {{
             configured
-              ? t("Webhook 已配置")
+              ? t("Webhook 已配置") + " · " + format
               : t("仅面板记录；在管理端配置文件添加 webhookURL 可发送通知。")
           }}
         </p>

@@ -8,6 +8,7 @@ import {
   size,
   date,
   type ScanProgress,
+  type Task,
   type Node,
   type Scan,
   type Entry,
@@ -16,6 +17,7 @@ import Treemap from "./Treemap.vue";
 const props = defineProps<{ node: Node }>();
 const path = ref(props.node.scanRoots?.[0] || "/");
 const scan = ref<Scan>();
+const cached = ref(false);
 const trail = ref<Entry[]>([]);
 const busy = ref(false);
 const error = ref("");
@@ -43,8 +45,36 @@ async function cancelScan() {
   }
 }
 const current = computed(() => trail.value.at(-1));
+async function previous() {
+  if (busy.value) return;
+  busy.value = true;
+  error.value = "";
+  taskID.value = "";
+  scan.value = undefined;
+  trail.value = [];
+  cached.value = false;
+  try {
+    const job = await api<Task | null>(
+      "scans/" + props.node.id + "?path=" + encodeURIComponent(path.value),
+      "GET",
+      undefined,
+      controller.signal,
+    );
+    const result = job?.result as Scan | undefined;
+    if (result?.tree) {
+      scan.value = result;
+      trail.value = [result.tree];
+      cached.value = true;
+    } else error.value = "没有保留的扫描结果";
+  } catch (e) {
+    if (!controller.signal.aborted) error.value = (e as Error).message;
+  } finally {
+    busy.value = false;
+  }
+}
 async function run() {
   if (busy.value || !canOperate.value) return;
+  cached.value = false;
   taskID.value = "";
   progress.value = undefined;
   cancelRequested.value = false;
@@ -121,9 +151,15 @@ function open(e: Entry) {
           {{ cancelRequested ? t("正在取消扫描…") : t("取消扫描") }}
         </button>
       </div>
+      <button type="button" :disabled="busy" @click="previous">
+        {{ t("查看最近扫描") }}
+      </button>
       <p v-if="error" class="error" role="alert">{{ systemText(error) }}</p>
     </div>
     <div v-if="current && scan" class="card">
+      <p v-if="cached" class="hint">
+        {{ t("历史扫描结果，时间见下方；可能已变化，清理仍需新的预览。") }}
+      </p>
       <div class="toolbar spread">
         <nav class="breadcrumbs">
           <button

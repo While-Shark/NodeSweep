@@ -13,13 +13,14 @@ import (
 )
 
 type Engine struct {
-	ScanBudget  ScanBudget
-	inspectOpen func() (map[[2]uint64]bool, error)
-	Roots       []string
-	ScanRoots   []string
-	PanelRoots  []string
-	mu          sync.Mutex
-	plans       map[string]Plan
+	ScanBudget   ScanBudget
+	managedRoots func() []string
+	inspectOpen  func() (map[[2]uint64]bool, error)
+	Roots        []string
+	ScanRoots    []string
+	PanelRoots   []string
+	mu           sync.Mutex
+	plans        map[string]Plan
 }
 
 func ID() string {
@@ -80,6 +81,8 @@ func (e *Engine) Run(ctx context.Context, r Request) (any, error) {
 		return e.preview(ctx, r.Rule)
 	case "execute":
 		return e.execute(ctx, r.PlanID)
+	case "rotation":
+		return rotationChecks(ctx, "/"), nil
 	case "detect":
 		return e.detect(), nil
 	default:

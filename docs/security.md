@@ -40,3 +40,11 @@ Rule dry runs use the same allowlists and file checks but do not store an execut
 Webhook URLs are loaded only from the protected hub config. The admin API returns only a configured flag. HTTPS notifications resolve and validate public IP addresses during connection, connect to that pinned address, reject redirects and avoid logging URL-bearing transport errors. Alerts are disabled by default; event history is capped at 100.
 
 Installer downloads trust this repository and verify SHA256SUMS. It snapshots the standard data path only after stopping the service, preserves configuration and custom units, and supports binary-only rollback. A short systemd startup check is not a guarantee of long-term health. Custom data paths and future incompatible migrations require operator-managed backups.
+
+### Completion hardening
+
+Scheduled cleanup adds no arbitrary command or script execution. It is administrator-only, disabled by default, requires same-node fresh preview consent, freezes the rule, uses normal one-use plans, audits before dispatch and pauses on restart or uncertain failure. Skipped runs are not replayed. Node revocation disables its schedules; submitted operations can still have completed.
+
+Log inspection pins directories and refuses symlinks, pipes and devices. Only known numeric/enumerated rotation parameters are returned; complete configuration, hooks and Docker credentials never enter results. Standard journal/audit paths, Docker container storage (including static data-root read from standard daemon.json), journal filenames and common Docker JSON archives are excluded independently of presets. Nonstandard/rootless Docker configuration and runtime overrides still need real-host verification.
+
+Slack/Discord payload tests cover bounded text and mention/unfurl suppression. Email forwarding uses an external trusted HTTPS relay; NodeSweep has no direct SMTP sender. Destination secrets remain in the hub's protected configuration. Actual external notification delivery and VPS integration require configured services; synthetic tests do not establish them.

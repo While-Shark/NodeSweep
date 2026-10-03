@@ -106,3 +106,17 @@ func TestHistoryGlobalCapAndRestart(t *testing.T) {
 		t.Fatal(points, err)
 	}
 }
+
+func TestUnavailableCPUIsNotStoredAsZero(t *testing.T) {
+	s := testStore(t)
+	s.AddNode(Node{ID: "one"}, "")
+	available := false
+	now := time.Now()
+	if err := s.recordMetrics("one", engine.Metrics{CPUAvailable: &available}, now); err != nil {
+		t.Fatal(err)
+	}
+	points, err := s.MetricsHistory("one", now, false)
+	if err != nil || len(points) != 1 || points[0].CPU != nil {
+		t.Fatal(points, err)
+	}
+}

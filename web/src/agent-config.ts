@@ -57,6 +57,17 @@ export function settingsError(settings: AgentSettings): MessageKey | undefined {
   )
     return "目录必须是绝对路径，每行一个；扫描及清理最多 64 项，面板最多 16 项。";
   if (
+    new TextEncoder().encode(
+      JSON.stringify({ roots: lists[0], scanRoots: lists[1] }).replace(
+        /[<>&\u2028\u2029]/g,
+        (character) =>
+          "\\u" + character.charCodeAt(0).toString(16).padStart(4, "0"),
+      ),
+    ).length >
+    32 * 1024
+  )
+    return "目录元数据不能超过 32 KB。";
+  if (
     lists[0].some((p) =>
       ["/", "/etc", "/proc", "/sys", "/dev"].includes(
         p.replace(/\/+/g, "/").replace(/\/+$/, "") || "/",

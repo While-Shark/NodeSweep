@@ -84,9 +84,16 @@ const free = computed(() =>
           }}</span>
         </div>
         <p class="hint">{{ n.metrics.host || t("等待 Agent 接入") }}</p>
+        <p v-if="n.metrics.partial" class="hint">
+          {{ t("指标采样不完整；部分指标或挂载点缺失。") }}
+        </p>
         <div class="node-metrics">
           <span
-            >CPU<strong>{{ n.metrics.cpu?.toFixed(1) || "0" }}%</strong></span
+            >CPU<strong>{{
+              n.metrics.cpuAvailable === false
+                ? "—"
+                : (n.metrics.cpu?.toFixed(1) || "0") + "%"
+            }}</strong></span
           ><span
             >{{ t("内存")
             }}<strong

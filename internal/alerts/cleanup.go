@@ -85,7 +85,7 @@ func (s *Service) CheckCleanup(ctx context.Context, c Settings, now time.Time) e
 		}
 		if s.Webhook != "" {
 			e.Delivery = "sent"
-			if err = send(ctx, s.Webhook, e); err != nil {
+			if err = sendFormat(ctx, s.Webhook, s.Format, e); err != nil {
 				e.Delivery = "failed"
 			}
 			body, _ = json.Marshal(e)

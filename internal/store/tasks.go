@@ -134,3 +134,20 @@ func (s *Store) ExpireTasks() error {
 		"task timed out; execution state may be unknown, inspect node before retrying", time.Now().Add(-3*time.Minute).UTC().Format(time.RFC3339Nano))
 	return err
 }
+
+// Reuse only retained scan payloads; no cached result is cleanup authorization.
+func (s *Store) LatestScan(node, path string) (*engine.Task, error) {
+	var body string
+	err := s.DB.QueryRow(`SELECT body FROM tasks WHERE node=? AND json_extract(body,'$.request.kind')='scan' AND json_extract(body,'$.request.path')=? AND status IN ('succeeded','failed','interrupted') AND json_type(body,'$.result.tree')='object' ORDER BY created DESC,id DESC LIMIT 1`, node, path).Scan(&body)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	var task engine.Task
+	if err = json.Unmarshal([]byte(body), &task); err != nil {
+		return nil, err
+	}
+	return &task, nil
+}

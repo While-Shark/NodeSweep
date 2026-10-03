@@ -75,7 +75,7 @@ func auditAction(p, method string) (action, target string) {
 	pieces := strings.Split(p, "/")
 	resource := pieces[0]
 	switch resource {
-	case "nodes", "rules", "tasks", "alerts":
+	case "nodes", "rules", "tasks", "alerts", "schedules":
 	default:
 		resource = "unknown"
 	}

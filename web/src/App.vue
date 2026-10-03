@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { canAdmin, role, setRole, type Role } from "./access";
+import RotationPanel from "./components/RotationPanel.vue";
+import SchedulesPanel from "./components/SchedulesPanel.vue";
 import AuditPanel from "./components/AuditPanel.vue";
 import { t, systemText } from "./i18n";
 import { ref, computed, onUnmounted } from "vue";
@@ -174,6 +176,21 @@ onUnmounted(logout);
         >
           ≡　{{ t("操作审计") }}
         </button>
+        <button
+          v-if="canAdmin"
+          :class="{ active: page === 'schedules' }"
+          :aria-current="page === 'schedules' ? 'page' : undefined"
+          @click="page = 'schedules'"
+        >
+          ◷　{{ t("自动清理计划") }}
+        </button>
+        <button
+          :class="{ active: page === 'rotation' }"
+          :aria-current="page === 'rotation' ? 'page' : undefined"
+          @click="page = 'rotation'"
+        >
+          ↻　{{ t("日志轮转检查") }}
+        </button>
       </nav>
       <div class="sidebar-bottom">
         <span class="status up">{{
@@ -212,7 +229,11 @@ onUnmounted(logout);
                         ? t("磁盘告警")
                         : page === "audit"
                           ? t("操作审计")
-                          : t("任务记录")
+                          : page === "schedules"
+                            ? t("自动清理计划")
+                            : page === "rotation"
+                              ? t("日志轮转检查")
+                              : t("任务记录")
             }}
           </h1>
         </div>
@@ -228,7 +249,7 @@ onUnmounted(logout);
       </header>
       <p v-if="error" class="error" role="alert">{{ systemText(error) }}</p>
       <div
-        v-if="page === 'disk' || page === 'rules'"
+        v-if="page === 'disk' || page === 'rules' || page === 'rotation'"
         class="node-selector toolbar"
       >
         <label
@@ -262,6 +283,15 @@ onUnmounted(logout);
         :nodes="nodes"
         @changed="reload"
         @select="select"
+      />
+      <RotationPanel
+        v-else-if="page === 'rotation' && current"
+        :key="'rotation' + current.id"
+        :node="current"
+      />
+      <SchedulesPanel
+        v-else-if="page === 'schedules' && canAdmin"
+        :nodes="nodes"
       />
       <AuditPanel v-else-if="page === 'audit' && canAdmin" />
       <TaskHistory v-else-if="page === 'tasks'" :nodes="nodes" /><AlertsPanel

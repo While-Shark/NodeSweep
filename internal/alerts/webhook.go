@@ -3,7 +3,6 @@ package alerts
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"errors"
 	"net"
 	"net/http"
@@ -37,6 +36,9 @@ func publicIP(ip netip.Addr) bool {
 	return true
 }
 func send(ctx context.Context, address string, event Event) error {
+	return sendFormat(ctx, address, "", event)
+}
+func sendFormat(ctx context.Context, address, format string, event Event) error {
 	if err := validateURL(address); err != nil {
 		return err
 	}
@@ -63,7 +65,7 @@ func send(ctx context.Context, address string, event Event) error {
 		}}
 	defer transport.CloseIdleConnections()
 	client := &http.Client{Timeout: 8 * time.Second, Transport: transport, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
-	data, err := json.Marshal(event)
+	data, err := formatEvent(format, event)
 	if err != nil {
 		return err
 	}

@@ -59,6 +59,25 @@ assert.equal(
   settingsError({ ...settings, hub: "http://[::1]:9780" }),
   undefined,
 );
+assert.ok(
+  settingsError({
+    ...settings,
+    scan: Array.from({ length: 64 }, (_, i) => "/" + i + "x".repeat(1000)).join(
+      "\n",
+    ),
+  }),
+);
 console.log(
   "PASS Agent wizard: URL restrictions, protected roots, directory limits, deduplication and panel discovery does not extend cleanup",
+);
+
+assert.equal(
+  settingsError({
+    ...settings,
+    cleanup: Array.from(
+      { length: 4 },
+      (_, i) => "/logs/" + i + "<".repeat(2000),
+    ).join("\n"),
+  }),
+  "目录元数据不能超过 32 KB。",
 );

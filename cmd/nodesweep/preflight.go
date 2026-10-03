@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/While-Shark/NodeSweep/internal/agent"
+	"github.com/While-Shark/NodeSweep/internal/alerts"
 	"github.com/While-Shark/NodeSweep/internal/engine"
 	"github.com/While-Shark/NodeSweep/internal/hub"
 	"io"
@@ -13,11 +14,21 @@ import (
 )
 
 func validateConfig(c Config) error {
+	if err := alerts.ValidateFormat(c.WebhookFormat); err != nil {
+		return err
+	}
+	if c.Mode == "agent" && c.WebhookFormat != "" {
+		return errors.New("webhookFormat is only supported on standalone or hub")
+	}
 	if err := engine.ValidateScanBudget(c.ScanBudget); err != nil {
 		return err
 	}
 	if c.Mode != "standalone" && c.Mode != "hub" && c.Mode != "agent" {
 		return errors.New("mode must be standalone, hub or agent")
+	}
+	roots, err := json.Marshal(struct{ Roots, ScanRoots []string }{c.CleanupRoots, c.ScanRoots})
+	if err != nil || len(roots) > 32<<10 {
+		return errors.New("directory metadata exceeds 32 KiB budget")
 	}
 	if len(c.CleanupRoots) > 64 || len(c.ScanRoots) > 64 {
 		return errors.New("at most 64 cleanup and scan roots allowed")

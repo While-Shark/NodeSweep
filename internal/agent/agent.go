@@ -52,7 +52,7 @@ func Run(ctx context.Context, address, node, token string, e *engine.Engine) err
 		progressMu.Lock()
 		snapshot := progress
 		progressMu.Unlock()
-		body, err := json.Marshal(hub.Poll{ScanControl: true, TaskID: activeID, Progress: snapshot, Node: node, Metrics: sampler.Read(), Roots: e.Roots, ScanRoots: e.ScanRoots, Result: pending, Busy: busy})
+		body, err := json.Marshal(hub.Poll{LogChecks: true, ScanControl: true, TaskID: activeID, Progress: snapshot, Node: node, Metrics: sampler.ReadContext(ctx), Roots: e.Roots, ScanRoots: e.ScanRoots, Result: pending, Busy: busy})
 		if err != nil {
 			return err
 		}

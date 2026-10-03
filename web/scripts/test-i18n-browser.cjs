@@ -79,6 +79,7 @@ const server = http.createServer((req, res) => {
       };
       const node = {
         id: "local",
+        logChecks: true,
         name: "我的服务器 <img src=x onerror=window.__xss=1>",
         lastSeen: new Date().toISOString(),
         roots: ["/var/log"],
@@ -86,6 +87,8 @@ const server = http.createServer((req, res) => {
         metrics: {
           host: "fixture-vps",
           cpu: 7.1,
+          cpuAvailable: false,
+          partial: true,
           memoryTotal: 1024,
           memoryAvailable: 512,
           load: "0.1",
@@ -101,6 +104,7 @@ const server = http.createServer((req, res) => {
         },
       };
       let fixtureNodes = [node];
+      let fixtureSchedules = [];
       const submitted = [];
       let cancellableScan = false;
       let fixtureRole = "admin";
@@ -121,6 +125,17 @@ const server = http.createServer((req, res) => {
           });
         if (request.headers().authorization === "Bearer bad")
           return send({ error: "invalid administrator token" }, 401);
+        if (endpoint.startsWith("scans/"))
+          return send(
+            [...tasks.values()]
+              .reverse()
+              .find(
+                (job) =>
+                  job.request.kind === "scan" &&
+                  job.node === endpoint.split("/")[1] &&
+                  job.request.path === url.searchParams.get("path"),
+              ) || null,
+          );
         if (endpoint.startsWith("metrics/"))
           return send([
             {
@@ -138,6 +153,40 @@ const server = http.createServer((req, res) => {
               disks: [{ path: "/", used: 61, inodes: 11 }],
             },
           ]);
+        if (endpoint === "schedules") {
+          if (request.method() === "POST") {
+            const value = {
+              id: "schedule1",
+              node: body.node,
+              rule: { ...rule },
+              hours: body.hours,
+              enabled: false,
+              outcome: "paused",
+              next: new Date().toISOString(),
+            };
+            fixtureSchedules.push(value);
+            return send(value);
+          }
+          return send(fixtureSchedules);
+        }
+        if (endpoint.startsWith("schedules/")) {
+          const value = fixtureSchedules.find(
+            (s) => s.id === endpoint.split("/")[1],
+          );
+          if (request.method() === "DELETE") {
+            fixtureSchedules = [];
+            return send({ ok: true });
+          }
+          if (body.enabled) {
+            assert.equal(body.confirm, true);
+            assert.equal(tasks.get(body.previewTask).node, value.node);
+            assert.equal(tasks.get(body.previewTask).request.kind, "preview");
+          }
+          value.enabled = body.enabled;
+          value.outcome = body.enabled ? "enabled" : "paused";
+          value.next = new Date(Date.now() + 3600000).toISOString();
+          return send(value);
+        }
         if (endpoint === "session") return send({ role: fixtureRole });
         if (endpoint === "audit")
           return send([
@@ -212,6 +261,23 @@ const server = http.createServer((req, res) => {
           submitted.push(body);
           const id = "t" + (tasks.size + 1);
           let result;
+          if (body.request.kind === "rotation")
+            result = {
+              at: new Date().toISOString(),
+              partial: true,
+              sources: [
+                {
+                  kind: "docker",
+                  path: "/etc/docker/daemon.json",
+                  status: "observed",
+                  settings: {
+                    "log-driver": "json-file",
+                    "max-size": "10m",
+                    "max-file": "3",
+                  },
+                },
+              ],
+            };
           if (body.request.kind === "detect")
             result = [
               {
@@ -359,6 +425,12 @@ const server = http.createServer((req, res) => {
         label(locale, "节点总览"),
       );
       assert.equal(await page.locator("main img").count(), 0);
+      assert.ok(
+        (await page.locator("main").innerText()).includes(
+          label(locale, "指标采样不完整；部分指标或挂载点缺失。"),
+        ),
+      );
+      assert.ok(!(await page.locator("main").innerText()).includes("7.1%"));
       assert.equal(await page.evaluate(() => window.__xss), undefined);
       assert.ok(
         (await page.locator("main").innerText()).includes(
@@ -372,6 +444,27 @@ const server = http.createServer((req, res) => {
         .click();
       await page.locator(".treemap .tile").waitFor();
       assert.ok((await page.locator("main").innerText()).includes("/var/log"));
+      const cacheStart = submitted.length;
+      await page
+        .getByRole("button", {
+          name: label(locale, "查看最近扫描"),
+          exact: true,
+        })
+        .click();
+      await page
+        .getByText(
+          label(
+            locale,
+            "历史扫描结果，时间见下方；可能已变化，清理仍需新的预览。",
+          ),
+          { exact: true },
+        )
+        .waitFor();
+      assert.equal(
+        submitted.length,
+        cacheStart,
+        "reading retained scan created work",
+      );
       await page.locator("aside nav button").nth(2).click();
       await page
         .getByRole("button", {
@@ -598,6 +691,60 @@ const server = http.createServer((req, res) => {
           lastSeen: "2000-01-01T00:00:00Z",
         },
       ];
+      await page.locator("aside nav button").nth(8).click();
+      await page
+        .getByRole("button", {
+          name: label(locale, "检查轮转配置"),
+          exact: true,
+        })
+        .click();
+      await page
+        .getByRole("cell", { name: "max-size = 10m", exact: false })
+        .waitFor();
+      assert.ok(
+        (await page.locator("main").innerText()).includes(
+          label(locale, "部分配置不存在、不可读取或超过检查预算。"),
+        ),
+      );
+      await page.locator("aside nav button").nth(7).click();
+      await page
+        .getByRole("heading", {
+          name: label(locale, "自动清理计划"),
+          exact: true,
+        })
+        .nth(1)
+        .waitFor();
+      await page.locator("main form select").nth(0).selectOption("local");
+      await page.locator("main form select").nth(1).selectOption("r1");
+      await page
+        .getByRole("button", {
+          name: label(locale, "创建已暂停计划"),
+          exact: true,
+        })
+        .click();
+      await page
+        .getByRole("button", { name: label(locale, "核对后启用"), exact: true })
+        .click();
+      const scheduleEnable = page.getByRole("button", {
+        name: label(locale, "确认启用自动清理"),
+        exact: true,
+      });
+      await scheduleEnable.waitFor();
+      assert.ok(await scheduleEnable.isDisabled());
+      await page.locator("main input[type=checkbox]").check();
+      await scheduleEnable.click();
+      assert.equal(fixtureSchedules[0].enabled, true);
+      await page
+        .getByRole("button", { name: label(locale, "暂停计划"), exact: true })
+        .click();
+      assert.equal(fixtureSchedules[0].enabled, false);
+      await page
+        .getByRole("button", { name: label(locale, "删除计划"), exact: true })
+        .click();
+      await page
+        .getByRole("button", { name: label(locale, "核对后启用"), exact: true })
+        .waitFor({ state: "detached" });
+      assert.equal(fixtureSchedules.length, 0);
       await page.locator("aside nav button").nth(5).click();
       await page.locator("table tbody tr").nth(2).waitFor();
       assert.ok(
@@ -885,7 +1032,7 @@ const server = http.createServer((req, res) => {
       );
       for (const width of [390, 360]) {
         await page.setViewportSize({ width, height: 844 });
-        for (let i = 0; i < 7; i++) {
+        for (let i = 0; i < 9; i++) {
           await page.locator("aside nav button").nth(i).click();
           const overflow = await page.evaluate(
             () => document.documentElement.scrollWidth > innerWidth + 1,

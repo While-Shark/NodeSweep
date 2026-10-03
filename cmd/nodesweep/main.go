@@ -23,19 +23,20 @@ import (
 )
 
 type Config struct {
-	AccessTokens []hub.AccessToken `json:"accessTokens,omitempty"`
-	ScanBudget   engine.ScanBudget `json:"scanBudget,omitempty,omitzero"`
-	WebhookURL   string            `json:"webhookURL,omitempty"`
-	Mode         string            `json:"mode"`
-	Listen       string            `json:"listen"`
-	Data         string            `json:"data"`
-	AdminToken   string            `json:"adminToken"`
-	Hub          string            `json:"hub"`
-	Node         string            `json:"node"`
-	Token        string            `json:"token"`
-	CleanupRoots []string          `json:"cleanupRoots"`
-	ScanRoots    []string          `json:"scanRoots"`
-	PanelRoots   []string          `json:"panelRoots,omitempty"`
+	AccessTokens  []hub.AccessToken `json:"accessTokens,omitempty"`
+	ScanBudget    engine.ScanBudget `json:"scanBudget,omitempty,omitzero"`
+	WebhookFormat string            `json:"webhookFormat,omitempty"`
+	WebhookURL    string            `json:"webhookURL,omitempty"`
+	Mode          string            `json:"mode"`
+	Listen        string            `json:"listen"`
+	Data          string            `json:"data"`
+	AdminToken    string            `json:"adminToken"`
+	Hub           string            `json:"hub"`
+	Node          string            `json:"node"`
+	Token         string            `json:"token"`
+	CleanupRoots  []string          `json:"cleanupRoots"`
+	ScanRoots     []string          `json:"scanRoots"`
+	PanelRoots    []string          `json:"panelRoots,omitempty"`
 }
 
 var version = "dev"
@@ -119,6 +120,7 @@ func run() error {
 	if err != nil {
 		return err
 	}
+	notifications.Format = c.WebhookFormat
 	h := &hub.Hub{Store: s, Token: c.AdminToken, AccessTokens: c.AccessTokens, Context: ctx, Alerts: notifications}
 	var background sync.WaitGroup
 	defer func() { cancelWork(); h.Wait(); background.Wait() }()
@@ -129,6 +131,8 @@ func run() error {
 		background.Add(1)
 		go func() { defer background.Done(); h.LocalMetrics(ctx) }()
 	}
+	background.Add(1)
+	go func() { defer background.Done(); h.RunSchedules(ctx) }()
 	assets, err := fs.Sub(web.Assets, "dist")
 	if err != nil {
 		return err

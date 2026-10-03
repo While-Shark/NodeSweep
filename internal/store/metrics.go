@@ -33,7 +33,7 @@ func percent(total, available uint64) *float64 {
 }
 func (s *Store) recordMetrics(node string, m engine.Metrics, at time.Time) error {
 	p := MetricPoint{At: at.UTC().Truncate(time.Minute), Samples: 1, Disks: []MetricDisk{}, Memory: percent(m.MemoryTotal, m.MemoryAvailable)}
-	if !math.IsNaN(m.CPU) && !math.IsInf(m.CPU, 0) && m.CPU >= 0 && m.CPU <= 100 {
+	if (m.CPUAvailable == nil || *m.CPUAvailable) && !math.IsNaN(m.CPU) && !math.IsInf(m.CPU, 0) && m.CPU >= 0 && m.CPU <= 100 {
 		v := m.CPU
 		p.CPU = &v
 	}

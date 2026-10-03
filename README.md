@@ -32,7 +32,9 @@ Persistent node groups and renaming, with group filters in the overview and batc
 - Independent revocable node credentials, hashed storage and persistent task history.
 - Local cleanup allowlists, expiring previews, file identity checks, symlink/hardlink rejection and open-file inspection.
 
-Presets and discovery never expand an agent's local cleanup allowlist. Scheduled cleanup, bulk execution, historical metric charts and native journal/Docker cleanup are future work.
+Presets and discovery never expand an Agent's local cleanup allowlist. Historical charts and reviewed batch cleanup are available. Optional scheduled cleanup starts paused, saves one node/rule snapshot, needs a fresh preview and explicit administrator consent, and pauses after restart or failure. Offline/busy runs are skipped. [Details](docs/deployment.md#scheduled-cleanup).
+
+Read-only [rotation checks and native retention guidance](docs/log-retention.md) cover logrotate, journald and Docker; native maintenance remains an operator action. Managed logs are excluded from ordinary cleanup. Notifications support [Slack/Discord and HTTPS-relay email forwarding](docs/notifications.md); direct SMTP is not included. Metric sampling is bounded, unknown CPU is marked unavailable, and retained scans show their timestamp without authorizing cleanup.
 
 ## Quick start
 
@@ -102,7 +104,7 @@ Release descriptions include reviewed change summaries in all five languages. Up
 
 ## Installation, reports and alerts
 
-Run `sudo bash install.sh --start` from an extracted bundle. To download a checked build, use `sudo bash install.sh --download v0.1.0-alpha.9 --start` (or `nightly` for testing). Upgrades preserve configuration, snapshot standard stopped state and restore the old binary if activation fails. `sudo bash install.sh --rollback` swaps binaries without restoring old database/configuration snapshots. Custom data paths require an operator backup; clean up obsolete snapshots after verification.
+Run `sudo bash install.sh --start` from an extracted bundle. To download a checked build, use `sudo bash install.sh --download v0.1.0-alpha.10 --start` (or `nightly` for testing). Upgrades preserve configuration, snapshot standard stopped state and restore the old binary if activation fails. `sudo bash install.sh --rollback` swaps binaries without restoring old database/configuration snapshots. Custom data paths require an operator backup; clean up obsolete snapshots after verification.
 
 Rule dry runs explain matching/exclusion decisions without creating an executable preview. Cleanup reports show file outcomes, allocated space and execution times, including partial failed tasks in task history. Allocated space is not net free-space growth.
 

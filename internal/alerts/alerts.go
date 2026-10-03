@@ -38,6 +38,7 @@ type state struct {
 type Service struct {
 	DB      *sql.DB
 	Webhook string
+	Format  string
 }
 
 func New(db *sql.DB, webhook string) (*Service, error) {
@@ -211,7 +212,7 @@ func (s *Service) transition(ctx context.Context, n store.Node, kind, path strin
 		e := Event{Node: n.ID, Name: n.Name, Kind: kind, Path: path, Percent: percent, Resolved: !active, At: now, Delivery: "not_configured"}
 		if s.Webhook != "" {
 			e.Delivery = "sent"
-			if err = send(ctx, s.Webhook, e); err != nil {
+			if err = sendFormat(ctx, s.Webhook, s.Format, e); err != nil {
 				e.Delivery = "failed"
 			}
 		}

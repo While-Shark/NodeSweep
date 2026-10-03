@@ -888,3 +888,16 @@ textarea {
 .skip-link:focus {
   transform: translateY(0);
 }
+
+.schedules-panel .toolbar {
+  flex-wrap: wrap;
+}
+.schedules-panel .toolbar > *,
+.schedules-panel select {
+  min-width: 0;
+  max-width: 100%;
+}
+.schedules-panel h3,
+.schedules-panel code {
+  overflow-wrap: anywhere;
+}

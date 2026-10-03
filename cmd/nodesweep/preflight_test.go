@@ -43,3 +43,13 @@ func TestLocalPreflightDoesNotWriteOrExposeCredentials(t *testing.T) {
 		t.Fatal("missing directory passed")
 	}
 }
+
+func TestMetadataBudgetBeforeServiceStart(t *testing.T) {
+	c := Config{Mode: "standalone", AdminToken: strings.Repeat("x", 64)}
+	for i := 0; i < 40; i++ {
+		c.ScanRoots = append(c.ScanRoots, "/"+strings.Repeat("p", 1000))
+	}
+	if err := validateConfig(c); err == nil || !strings.Contains(err.Error(), "32 KiB") {
+		t.Fatal("oversized directory metadata accepted", err)
+	}
+}

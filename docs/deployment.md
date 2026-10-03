@@ -170,9 +170,9 @@ sudo bash install.sh --rollback
 "webhookURL": "https://your-public-receiver.example/hooks/your-secret"
 ```
 
-重新启动管理端后生效。Webhook 为通用 `POST application/json`：包含 `node`、`name`、`path`、`kind`（disk/inode/offline）、`percent`、`resolved` 和 `at`。接收端需处理此格式；不是 Slack/钉钉等平台的专有消息格式。地址只保存在管理端文件，不返回浏览器。仅支持公开 HTTPS 目标，拒绝私网、保留地址和重定向，并在连接时校验解析后的 IP，避免 DNS 重绑定。网络错误只记录通知失败，不展示含密钥的 URL。
+重新启动管理端后生效。Webhook 为通用 `POST application/json`：包含 `node`、`name`、`path`、`kind`（disk/inode/offline）、`percent`、`resolved` 和 `at`。默认 event 格式需由接收端处理；webhookFormat 可选择 slack 或 discord 平台格式，详见 [通知适配](notifications.md)。地址只保存在管理端文件，不返回浏览器。仅支持公开 HTTPS 目标，拒绝私网、保留地址和重定向，并在连接时校验解析后的 IP，避免 DNS 重绑定。网络错误只记录通知失败，不展示含密钥的 URL。
 
-通知包含节点名称与路径，请使用你信任的接收端。没有邮件发送、自动升级或自动日志清理。
+通知包含节点名称与路径，请使用你信任的接收端。不内置 SMTP 或自动升级；邮件可经可信 HTTPS Relay 转发。自动清理计划另需管理员核对并启用，默认关闭。
 
 ## Agent 配置向导与本地检查
 
@@ -215,7 +215,7 @@ The overview includes authenticated per-node CPU, memory, disk and inode utiliza
 
 The hub stores the first accepted heartbeat per node per receipt minute, independently of the Agent timestamp. SQLite keeps up to seven days and 20,000 samples globally, so many nodes may have a shorter history. Each sample retains numeric utilization and up to 16 mount paths; path length and a conservative 4 KiB payload budget bound storage. Missing and invalid measurements remain unavailable, and offline periods are not filled with zeros. History uses 15-minute means for 24 hours and hourly means for seven days; a partly observed bucket averages its available samples, with the count shown in the table. Long gaps break chart lines. Revoking a node removes its metric history.
 
-`GET /api/metrics/{node}?period=24h` (or `7d`) uses the administrator credential; Agent credentials cannot read another node's history. History contains mount paths but no hostnames, credentials, process details or cleanup authorization. It survives hub restarts. Retention deletes rows for reuse; SQLite may keep the allocated database file size.
+`GET /api/metrics/{node}?period=24h` (or `7d`) uses a dashboard access credential (viewer, operator or administrator); Agent credentials cannot read another node's history. History contains mount paths but no hostnames, credentials, process details or cleanup authorization. It survives hub restarts. Retention deletes rows for reuse; SQLite may keep the allocated database file size.
 
 ### Cleanup failure notifications
 
@@ -256,3 +256,23 @@ Only confirmed nodes are dispatched, with at most two workers. All confirmations
 ### Keyboard interaction
 
 The console provides a skip-to-main link, current-page navigation state, focus outlines and full path/size labels for treemap buttons. Dialogs contain Tab/Shift+Tab focus, accept Escape to close, make background controls inert and restore focus to the opener when it still exists. A node metadata save keeps its dialog open until the save finishes. Native buttons, selects, checkboxes and detail summaries support keyboard operation; metric history also has a readable data table. Five-language browser regressions cover dialog focus, restoration, background state, roles and mobile widths. These checks are functional coverage, not a claim of a full accessibility certification.
+
+## Metric sampling limits
+
+Each local or Agent sample uses a cooperative one-second deadline, bounded `/proc` reads, at most 4,096 mount lines and 128 supported-filesystem probe attempts, including duplicates or failures. A conservative 32 KiB metric payload budget and a separate 32 KiB configured root-metadata limit bound reporting. Sampling reports partial data when these limits or read errors occur. CPU needs two valid counter readings; initial or regressed counters are unavailable rather than a measured zero, and new unavailable readings are excluded from history. Old Agents without this flag retain their previous semantics.
+
+These limits are checked between filesystem calls. Kernel-blocked reads or `statfs` cannot be forcibly interrupted; the sampler does not spawn abandoned timeout goroutines. Upgrade the hub before Agents.
+
+## Scheduled cleanup
+
+Only administrators can create, enable, pause or delete schedules. Creation selects one registered node and one existing rule, saves an immutable rule snapshot and starts paused. Changing or deleting the original rule does not change the schedule. To enable, obtain a new matching preview on that same node, review its rule and candidate list, and explicitly authorize future permanent archive deletion. The server checks ownership, rule equality, success and a five-minute preview age; it also checks that the node is online and idle.
+
+Intervals are 1–720 hours, with the first run one interval after enabling. Up to 32 schedules are saved and two preview/execution pipelines run concurrently. Each due run consumes its interval before submitting a fresh node-owned preview. Execution uses only that preview's one-use plan. Node allowlists, archive age, exclusions, managed-log protection, open-file and identity checks still apply. Audit is persisted before dispatch; failure to record it prevents dispatch. Tasks and cleanup-failure alerts use the existing protocol.
+
+Offline/busy runs are skipped without catch-up or retries. Failed, interrupted, expired or mismatched previews/execution pause the schedule. Every hub restart pauses all schedules, including ones between preview and execution; inspect any uncertain submitted execution and review again before enabling. Pausing, deleting a schedule or revoking a node cannot undo an already submitted cleanup. A schedule's stored task ID points to its execution evidence.
+
+Application cleanup schedules are independent of releases. Release/nightly workflows have no daily cron and run only for new checked commits. Native journald/Docker retention remains an operator action described in [the retention guide](log-retention.md).
+
+## Retained scan reuse
+
+Disk analysis can explicitly load the latest retained terminal scan for the same node and requested directory, including partial failed scans. It labels the result as historical and shows the scan timestamp. Loading it creates no task and consumes no cleanup plan. The existing newest-ten-payload/30-day metadata policy bounds it; a pruned result is unavailable. A historical tree never authorizes deletion: create a new preview for cleanup.

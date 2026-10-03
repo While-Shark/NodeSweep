@@ -45,7 +45,7 @@ Hub 重启将未完成任务标记为 interrupted，不自动重放。网络断�
 - 文件占用检查要求完整可见的宿主机进程信息；容器内看不到宿主机进程时，不适合作为清理 Agent。
 - 临时隔离与同目录文件系统操作保证的是身份复核，不是备份或回收站。
 - 扫描单线程、按需触发、有条目/时间上限。深度目录和海量小文件仍可能造成磁盘 I/O，应选择合适目录和时段。
-- 指标历史曲线、计划任务、用户权限分级尚未实现。
+- 指标历史有界保留；计划默认暂停、规则快照固定、重启后重新核对；角色权限覆盖整个 Hub，不提供逐节点租户隔离。
 
 ## 参考来源
 
@@ -57,3 +57,7 @@ Hub 重启将未完成任务标记为 interrupted，不自动重放。网络断�
 - 1Panel 官方社区日志位置：https://bbs.fit2cloud.com/t/topic/1069
 
 参考的是产品设计和公开文档，没有复制上述项目实现代码。
+
+## Cleanup scheduler
+
+A bounded SQLite schedule saves a single node and immutable rule snapshot. Administrator enablement requires a fresh matching preview plus explicit future-deletion consent. A serialized hub tick consumes due time, audits admission, and atomically saves both the task and phase. It chains the normal owned preview into single-use execution, with at most two pipelines and no overlap on a busy node. Restart pauses all schedules and interrupts pending tasks. It never reconstructs or replays an execution from an old result. Native logging maintenance is read-only inspection and operator guidance, with no new process runner.

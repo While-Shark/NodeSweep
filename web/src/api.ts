@@ -11,10 +11,13 @@ export interface Node {
   name: string;
   group?: string;
   scanControl?: boolean;
+  logChecks?: boolean;
   lastSeen: string;
   roots: string[];
   scanRoots: string[];
   metrics: {
+    cpuAvailable?: boolean;
+    partial?: boolean;
     host: string;
     cpu: number;
     memoryTotal: number;
