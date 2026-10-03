@@ -212,7 +212,7 @@ onUnmounted(logout);
         @changed="reload"
         @select="select"
       />
-      <TaskHistory v-else-if="page === 'tasks'" /><AlertsPanel
+      <TaskHistory v-else-if="page === 'tasks'" :nodes="nodes" /><AlertsPanel
         v-else-if="page === 'alerts'"
       />
       <div v-else class="card empty">

@@ -123,7 +123,7 @@ func (s *Store) Prune() error {
 // Go or saving stale snapshots back over concurrently changing task records.
 func (s *Store) CompactScans() error {
 	_, err := s.DB.Exec(`UPDATE tasks SET body=json_remove(body,'$.result')
- WHERE id IN (SELECT id FROM tasks WHERE status='succeeded'
+ WHERE id IN (SELECT id FROM tasks WHERE status IN ('succeeded','failed','interrupted')
  AND json_extract(body,'$.request.kind')='scan' AND json_type(body,'$.result') IS NOT NULL
  AND json_type(body,'$.result')!='null' ORDER BY created DESC,id DESC LIMIT -1 OFFSET 10)`)
 	return err

@@ -3,6 +3,7 @@ import { ref, onMounted, onUnmounted } from "vue";
 import { api, date } from "../api";
 import { t, systemText } from "../i18n";
 interface Settings {
+  cleanupFailures: boolean;
   enabled: boolean;
   diskPercent: number;
   inodePercent: number;
@@ -10,6 +11,7 @@ interface Settings {
   cooldownSeconds: number;
 }
 interface Alert {
+  task?: string;
   id: number;
   name: string;
   path: string;
@@ -21,6 +23,7 @@ interface Alert {
 }
 const settings = ref<Settings>({
   enabled: false,
+  cleanupFailures: false,
   diskPercent: 85,
   inodePercent: 85,
   offlineSeconds: 60,
@@ -79,6 +82,11 @@ onUnmounted(() => clearInterval(timer));
       <label class="check"
         ><input v-model="settings.enabled" type="checkbox" />{{
           t("启用告警")
+        }}</label
+      >
+      <label class="check"
+        ><input v-model="settings.cleanupFailures" type="checkbox" />{{
+          t("通知清理失败")
         }}</label
       >
       <div class="form-grid">
@@ -152,18 +160,23 @@ onUnmounted(() => clearInterval(timer));
             <td>{{ item.name }}</td>
             <td>
               {{
-                item.kind === "offline"
-                  ? t("离线")
-                  : item.kind === "inode"
-                    ? "inode"
-                    : t("磁盘分析")
+                item.kind === "cleanup_failure"
+                  ? t("清理失败")
+                  : item.kind === "offline"
+                    ? t("离线")
+                    : item.kind === "inode"
+                      ? "inode"
+                      : t("磁盘分析")
               }}
-              <span v-if="item.kind !== 'offline'"
+              <span
+                v-if="
+                  item.kind !== 'offline' && item.kind !== 'cleanup_failure'
+                "
                 >{{ item.percent.toFixed(1) }}%</span
               >
             </td>
             <td>
-              <code>{{ item.path || "—" }}</code>
+              <code>{{ item.task || item.path || "—" }}</code>
             </td>
             <td>{{ item.resolved ? t("已恢复") : t("告警中") }}</td>
             <td>{{ date(item.at) }}</td>
@@ -171,9 +184,11 @@ onUnmounted(() => clearInterval(timer));
               {{
                 item.delivery === "sent"
                   ? t("通知已发送")
-                  : item.delivery === "failed"
-                    ? t("通知失败")
-                    : t("未配置通知")
+                  : item.delivery === "interrupted"
+                    ? t("通知未完成")
+                    : item.delivery === "failed"
+                      ? t("通知失败")
+                      : t("未配置通知")
               }}
             </td>
           </tr>

@@ -23,17 +23,18 @@ import (
 )
 
 type Config struct {
-	WebhookURL   string   `json:"webhookURL,omitempty"`
-	Mode         string   `json:"mode"`
-	Listen       string   `json:"listen"`
-	Data         string   `json:"data"`
-	AdminToken   string   `json:"adminToken"`
-	Hub          string   `json:"hub"`
-	Node         string   `json:"node"`
-	Token        string   `json:"token"`
-	CleanupRoots []string `json:"cleanupRoots"`
-	ScanRoots    []string `json:"scanRoots"`
-	PanelRoots   []string `json:"panelRoots,omitempty"`
+	ScanBudget   engine.ScanBudget `json:"scanBudget,omitempty,omitzero"`
+	WebhookURL   string            `json:"webhookURL,omitempty"`
+	Mode         string            `json:"mode"`
+	Listen       string            `json:"listen"`
+	Data         string            `json:"data"`
+	AdminToken   string            `json:"adminToken"`
+	Hub          string            `json:"hub"`
+	Node         string            `json:"node"`
+	Token        string            `json:"token"`
+	CleanupRoots []string          `json:"cleanupRoots"`
+	ScanRoots    []string          `json:"scanRoots"`
+	PanelRoots   []string          `json:"panelRoots,omitempty"`
 }
 
 var version = "dev"
@@ -92,6 +93,7 @@ func run() error {
 	defer stop()
 	e := engine.New(c.CleanupRoots, c.ScanRoots)
 	e.PanelRoots = c.PanelRoots
+	e.ScanBudget = c.ScanBudget
 	if c.Mode == "agent" {
 		if c.Node == "" || !validCredential(c.Token) {
 			return errors.New("node and strong token required")

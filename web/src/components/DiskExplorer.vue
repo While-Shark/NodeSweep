@@ -1,7 +1,16 @@
 <script setup lang="ts">
-import { t, systemText } from "../i18n";
-import { ref, computed } from "vue";
-import { task, size, date, type Node, type Scan, type Entry } from "../api";
+import { t, systemText, scanReason } from "../i18n";
+import { ref, computed, onUnmounted } from "vue";
+import {
+  api,
+  task,
+  size,
+  date,
+  type ScanProgress,
+  type Node,
+  type Scan,
+  type Entry,
+} from "../api";
 import Treemap from "./Treemap.vue";
 const props = defineProps<{ node: Node }>();
 const path = ref(props.node.scanRoots?.[0] || "/");
@@ -9,18 +18,58 @@ const scan = ref<Scan>();
 const trail = ref<Entry[]>([]);
 const busy = ref(false);
 const error = ref("");
+const controller = new AbortController();
+onUnmounted(() => controller.abort());
+const taskID = ref("");
+const progress = ref<ScanProgress>();
+const cancelling = ref(false),
+  cancelRequested = ref(false);
+async function cancelScan() {
+  if (!taskID.value || cancelling.value) return;
+  cancelling.value = true;
+  try {
+    await api(
+      "tasks/" + taskID.value + "/cancel",
+      "POST",
+      undefined,
+      controller.signal,
+    );
+    cancelRequested.value = true;
+  } catch (e) {
+    if (!controller.signal.aborted) error.value = (e as Error).message;
+  } finally {
+    cancelling.value = false;
+  }
+}
 const current = computed(() => trail.value.at(-1));
 async function run() {
+  if (busy.value) return;
+  taskID.value = "";
+  progress.value = undefined;
+  cancelRequested.value = false;
+  scan.value = undefined;
+  trail.value = [];
   busy.value = true;
   error.value = "";
   try {
-    scan.value = await task<Scan>(props.node.id, {
-      kind: "scan",
-      path: path.value,
-    });
+    scan.value = await task<Scan>(
+      props.node.id,
+      { kind: "scan", path: path.value },
+      controller.signal,
+      (job) => {
+        taskID.value = job.id;
+        progress.value = job.progress;
+        cancelRequested.value = !!job.cancelRequested;
+        const result = job.result as Scan | undefined;
+        if (result?.tree && ["succeeded", "failed"].includes(job.status)) {
+          scan.value = result;
+          trail.value = [result.tree];
+        }
+      },
+    );
     trail.value = [scan.value.tree];
   } catch (e) {
-    error.value = (e as Error).message;
+    if (!controller.signal.aborted) error.value = (e as Error).message;
   } finally {
     busy.value = false;
   }
@@ -54,6 +103,23 @@ function open(e: Entry) {
           })
         }}
       </p>
+      <div v-if="busy" class="toolbar">
+        <span v-if="progress" class="hint">{{
+          t("已访问 {visited} 项 · 已统计 {files} 项 · {space}", {
+            visited: progress.visited,
+            files: progress.files,
+            space: size(progress.bytes),
+          })
+        }}</span>
+        <button
+          v-if="taskID && (node.id === 'local' || node.scanControl)"
+          type="button"
+          :disabled="cancelling || cancelRequested"
+          @click="cancelScan"
+        >
+          {{ cancelRequested ? t("正在取消扫描…") : t("取消扫描") }}
+        </button>
+      </div>
       <p v-if="error" class="error" role="alert">{{ systemText(error) }}</p>
     </div>
     <div v-if="current && scan" class="card">
@@ -79,7 +145,8 @@ function open(e: Entry) {
           })
         }}
         <strong v-if="scan.truncated"
-          >· {{ t("已达到上限，结果不完整，请缩小扫描范围") }}</strong
+          >· {{ t("扫描结果不完整，请缩小范围或调整节点预算。") }}
+          {{ scanReason(scan.reason || "") }}</strong
         >
       </p>
       <div class="table-wrap">

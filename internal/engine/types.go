@@ -61,6 +61,7 @@ type Entry struct {
 	Children  []*Entry `json:"children,omitempty"`
 }
 type Scan struct {
+	Reason    string    `json:"reason,omitempty"`
 	Tree      *Entry    `json:"tree"`
 	Files     int       `json:"files"`
 	Skipped   int       `json:"skipped"`
@@ -74,11 +75,13 @@ type Request struct {
 	PlanID string `json:"planId,omitempty"`
 }
 type Task struct {
-	ID      string    `json:"id"`
-	Node    string    `json:"node"`
-	Request Request   `json:"request"`
-	Status  string    `json:"status"`
-	Result  any       `json:"result,omitempty"`
-	Error   string    `json:"error,omitempty"`
-	Created time.Time `json:"created"`
+	CancelRequested bool          `json:"cancelRequested,omitempty"`
+	Progress        *ScanProgress `json:"progress,omitempty"`
+	ID              string        `json:"id"`
+	Node            string        `json:"node"`
+	Request         Request       `json:"request"`
+	Status          string        `json:"status"`
+	Result          any           `json:"result,omitempty"`
+	Error           string        `json:"error,omitempty"`
+	Created         time.Time     `json:"created"`
 }

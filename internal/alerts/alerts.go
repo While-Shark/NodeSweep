@@ -12,6 +12,7 @@ import (
 )
 
 type Settings struct {
+	CleanupFailures bool `json:"cleanupFailures"`
 	Enabled         bool `json:"enabled"`
 	DiskPercent     int  `json:"diskPercent"`
 	InodePercent    int  `json:"inodePercent"`
@@ -19,6 +20,7 @@ type Settings struct {
 	CooldownSeconds int  `json:"cooldownSeconds"`
 }
 type Event struct {
+	Task     string    `json:"task,omitempty"`
 	ID       int64     `json:"id"`
 	Node     string    `json:"node"`
 	Name     string    `json:"name"`
@@ -112,6 +114,13 @@ func (s *Service) Run(ctx context.Context, nodes func() ([]store.Node, error)) {
 			list, err := nodes()
 			if err != nil {
 				continue
+			}
+			if settings.CleanupFailures {
+				failureCtx, cancel := context.WithTimeout(ctx, 20*time.Second)
+				if err = s.CheckCleanup(failureCtx, settings, now); err != nil {
+					log.Print("cleanup alert processing failed")
+				}
+				cancel()
 			}
 			if err = s.Check(ctx, list, settings, now); err != nil {
 				log.Print("alert processing failed")

@@ -1,6 +1,10 @@
 import type { MessageKey } from "./messages";
 // Known API diagnostics; unknown details remain available verbatim.
 export const errorKeys: Record<string, MessageKey> = {
+  "scan cancelled before dispatch": "扫描已取消",
+  "only pending or running scans can be cancelled":
+    "仅支持取消等待或运行中的扫描",
+  "agent upgrade required for scan cancellation": "请升级 Agent 后使用扫描取消",
   "invalid node name or group": "节点名称或分组无效",
   "invalid alert thresholds": "告警阈值无效",
   "internal server error": "服务器内部错误，请查看服务端日志",

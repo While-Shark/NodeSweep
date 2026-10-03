@@ -29,6 +29,7 @@ type Hub struct {
 	Engine   *engine.Engine
 	Token    string
 	mu       sync.Mutex
+	cancels  map[string]context.CancelFunc
 	Context  context.Context
 	workers  sync.WaitGroup
 	stopping bool
@@ -122,6 +123,26 @@ func (h *Hub) api(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		reply(w, map[string]bool{"ok": true})
+	case strings.HasPrefix(p, "metrics/") && r.Method == "GET":
+		node := strings.TrimPrefix(p, "metrics/")
+		if _, err := h.Store.Node(node); errors.Is(err, sql.ErrNoRows) {
+			fail(w, errors.New("node not found"), 404)
+			return
+		} else if err != nil {
+			fail(w, err, 500)
+			return
+		}
+		period := r.URL.Query().Get("period")
+		if period != "" && period != "24h" && period != "7d" {
+			fail(w, errors.New("invalid history period"), 400)
+			return
+		}
+		points, err := h.Store.MetricsHistory(node, time.Now(), period == "7d")
+		if err != nil {
+			fail(w, err, 500)
+			return
+		}
+		reply(w, points)
 	case p == "nodes" && r.Method == "GET":
 		v, e := h.Store.Nodes()
 		if e != nil {
@@ -270,6 +291,29 @@ func (h *Hub) api(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		reply(w, v)
+	case strings.HasPrefix(p, "tasks/") && strings.HasSuffix(p, "/cancel") && r.Method == "POST":
+		id := strings.TrimSuffix(strings.TrimPrefix(p, "tasks/"), "/cancel")
+		h.mu.Lock()
+		defer h.mu.Unlock()
+		original, e := h.Store.Task(id)
+		if e != nil {
+			fail(w, errors.New("task not found"), 404)
+			return
+		}
+		node, e := h.Store.Node(original.Node)
+		if e != nil || (original.Node != "local" && !node.ScanControl) || (original.Node == "local" && h.Engine == nil) {
+			fail(w, errors.New("agent upgrade required for scan cancellation"), 409)
+			return
+		}
+		result, e := h.Store.CancelScan(id)
+		if e != nil {
+			fail(w, e, 409)
+			return
+		}
+		if cancel := h.cancels[id]; cancel != nil {
+			cancel()
+		}
+		reply(w, result)
 	case strings.HasPrefix(p, "tasks/") && r.Method == "GET":
 		v, e := h.Store.Task(strings.TrimPrefix(p, "tasks/"))
 		if e != nil {
@@ -335,6 +379,24 @@ func (h *Hub) localTask(t engine.Task) {
 	}
 	ctx, cancel := context.WithTimeout(h.workContext(), 90*time.Second)
 	defer cancel()
+	h.mu.Lock()
+	if h.cancels == nil {
+		h.cancels = map[string]context.CancelFunc{}
+	}
+	h.cancels[t.ID] = cancel
+	fresh, checkErr := h.Store.Task(t.ID)
+	if checkErr != nil || fresh.CancelRequested {
+		cancel()
+	}
+	h.mu.Unlock()
+	defer func() { h.mu.Lock(); delete(h.cancels, t.ID); h.mu.Unlock() }()
+	if t.Request.Kind == "scan" {
+		ctx = engine.WithScanProgress(ctx, func(progress engine.ScanProgress) {
+			if e := h.Store.ScanProgress(t.ID, t.Node, progress); e != nil {
+				log.Print(e)
+			}
+		})
+	}
 	t.Result, err = h.Engine.Run(ctx, t.Request)
 	t.Status = "succeeded"
 	if err != nil {
@@ -357,7 +419,7 @@ func (h *Hub) LocalMetrics(ctx context.Context) {
 	}
 	sampler := engine.Sampler{}
 	for {
-		n := store.Node{ID: "local", Name: "本机", LastSeen: time.Now(), Metrics: sampler.Read(), Roots: h.Engine.Roots, ScanRoots: h.Engine.ScanRoots}
+		n := store.Node{ID: "local", Name: "本机", ScanControl: true, LastSeen: time.Now(), Metrics: sampler.Read(), Roots: h.Engine.Roots, ScanRoots: h.Engine.ScanRoots}
 		if err := h.Store.UpdateNode(n); err != nil {
 			log.Print(err)
 		}
@@ -370,12 +432,15 @@ func (h *Hub) LocalMetrics(ctx context.Context) {
 }
 
 type Poll struct {
-	Node      string         `json:"node"`
-	Metrics   engine.Metrics `json:"metrics"`
-	Roots     []string       `json:"roots"`
-	ScanRoots []string       `json:"scanRoots"`
-	Result    *engine.Task   `json:"result,omitempty"`
-	Busy      bool           `json:"busy"`
+	ScanControl bool                 `json:"scanControl,omitempty"`
+	TaskID      string               `json:"taskId,omitempty"`
+	Progress    *engine.ScanProgress `json:"progress,omitempty"`
+	Node        string               `json:"node"`
+	Metrics     engine.Metrics       `json:"metrics"`
+	Roots       []string             `json:"roots"`
+	ScanRoots   []string             `json:"scanRoots"`
+	Result      *engine.Task         `json:"result,omitempty"`
+	Busy        bool                 `json:"busy"`
 }
 
 func (h *Hub) poll(w http.ResponseWriter, r *http.Request) {
@@ -413,6 +478,7 @@ func (h *Hub) poll(w http.ResponseWriter, r *http.Request) {
 		fail(w, e, 404)
 		return
 	}
+	n.ScanControl = b.ScanControl
 	n.LastSeen = time.Now()
 	n.Metrics = b.Metrics
 	n.Roots = b.Roots
@@ -420,6 +486,12 @@ func (h *Hub) poll(w http.ResponseWriter, r *http.Request) {
 	if e = h.Store.UpdateNode(n); e != nil {
 		fail(w, e, 500)
 		return
+	}
+	if b.Progress != nil {
+		if e := h.Store.ScanProgress(b.TaskID, b.Node, *b.Progress); e != nil {
+			fail(w, e, 400)
+			return
+		}
 	}
 	if b.Result != nil {
 		completion := *b.Result
@@ -438,7 +510,13 @@ func (h *Hub) poll(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	reply(w, map[string]any{"task": task})
+	response := map[string]any{"task": task}
+	if b.ScanControl {
+		if id := h.Store.ScanCancellation(b.Node); id != "" {
+			response["cancel"] = id
+		}
+	}
+	reply(w, response)
 }
 
 func (h *Hub) workContext() context.Context {

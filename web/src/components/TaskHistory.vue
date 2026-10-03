@@ -3,8 +3,35 @@ import { t, systemText, taskKind, taskStatus } from "../i18n";
 import { onMounted, onUnmounted, ref } from "vue";
 import CleanupReport from "./CleanupReport.vue";
 import ReviewDetails from "./ReviewDetails.vue";
-import type { CleanupResult, Plan } from "../api";
-import { api, date, type Task } from "../api";
+import type { CleanupResult, Plan, Node } from "../api";
+import { api, date, size, type Task } from "../api";
+const props = defineProps<{ nodes: Node[] }>();
+const cancelling = ref("");
+function canCancel(job: Task) {
+  return (
+    job.request.kind === "scan" &&
+    ["pending", "running"].includes(job.status) &&
+    !job.cancelRequested &&
+    (job.node === "local" ||
+      props.nodes.some((n) => n.id === job.node && n.scanControl))
+  );
+}
+async function cancelScan(job: Task) {
+  cancelling.value = job.id;
+  try {
+    await api(
+      "tasks/" + job.id + "/cancel",
+      "POST",
+      undefined,
+      controller.signal,
+    );
+    await load();
+  } catch (e) {
+    if (!controller.signal.aborted) error.value = (e as Error).message;
+  } finally {
+    cancelling.value = "";
+  }
+}
 const controller = new AbortController();
 onUnmounted(() => controller.abort());
 let loadGeneration = 0;
@@ -96,7 +123,26 @@ onMounted(load);
               }}</small>
             </td>
             <td>
-              <button @click="inspect(job)">{{ t("查看") }}</button>
+              <button @click="inspect(job)">{{ t("查看") }}</button
+              ><button
+                v-if="canCancel(job)"
+                :disabled="!!cancelling"
+                @click="cancelScan(job)"
+              >
+                {{ t("取消扫描") }}
+              </button>
+              <span
+                v-if="job.cancelRequested && job.status === 'running'"
+                class="hint"
+                >{{ t("正在取消扫描…") }}</span
+              >
+              <small v-if="job.progress">{{
+                t("已访问 {visited} 项 · 已统计 {files} 项 · {space}", {
+                  visited: job.progress.visited,
+                  files: job.progress.files,
+                  space: size(job.progress.bytes),
+                })
+              }}</small>
             </td>
           </tr>
         </tbody>

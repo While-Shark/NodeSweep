@@ -16,13 +16,14 @@ import (
 
 type Store struct{ DB *sql.DB }
 type Node struct {
-	ID        string         `json:"id"`
-	Name      string         `json:"name"`
-	Group     string         `json:"group"`
-	LastSeen  time.Time      `json:"lastSeen"`
-	Metrics   engine.Metrics `json:"metrics"`
-	Roots     []string       `json:"roots"`
-	ScanRoots []string       `json:"scanRoots"`
+	ScanControl bool           `json:"scanControl"`
+	ID          string         `json:"id"`
+	Name        string         `json:"name"`
+	Group       string         `json:"group"`
+	LastSeen    time.Time      `json:"lastSeen"`
+	Metrics     engine.Metrics `json:"metrics"`
+	Roots       []string       `json:"roots"`
+	ScanRoots   []string       `json:"scanRoots"`
 }
 
 func Open(path string) (*Store, error) {
@@ -61,7 +62,9 @@ func Open(path string) (*Store, error) {
  CREATE TABLE IF NOT EXISTS nodes(id TEXT PRIMARY KEY,name TEXT NOT NULL,token TEXT NOT NULL,body TEXT NOT NULL);
  CREATE TABLE IF NOT EXISTS rules(id TEXT PRIMARY KEY,body TEXT NOT NULL);
  CREATE TABLE IF NOT EXISTS tasks(id TEXT PRIMARY KEY,node TEXT NOT NULL,status TEXT NOT NULL,created TEXT NOT NULL,body TEXT NOT NULL);
- CREATE INDEX IF NOT EXISTS tasks_queue ON tasks(node,status,created);`)
+ CREATE INDEX IF NOT EXISTS tasks_queue ON tasks(node,status,created);
+ CREATE TABLE IF NOT EXISTS metric_samples(node TEXT NOT NULL,minute INTEGER NOT NULL,body TEXT NOT NULL,PRIMARY KEY(node,minute));
+ CREATE INDEX IF NOT EXISTS metric_samples_time ON metric_samples(minute);`)
 	if err != nil {
 		db.Close()
 		return nil, err
@@ -127,8 +130,12 @@ func (s *Store) UpdateNode(n Node) error {
  "$.lastSeen",json_extract(?,"$.lastSeen"),
  "$.metrics",json_extract(?,"$.metrics"),
  "$.roots",json_extract(?,"$.roots"),
- "$.scanRoots",json_extract(?,"$.scanRoots")) WHERE id=?`, string(b), string(b), string(b), string(b), n.ID)
-	return e
+ "$.scanRoots",json_extract(?,"$.scanRoots"),
+ "$.scanControl",json(CASE json_extract(?,"$.scanControl") WHEN 1 THEN 'true' ELSE 'false' END)) WHERE id=?`, string(b), string(b), string(b), string(b), string(b), n.ID)
+	if e != nil {
+		return e
+	}
+	return s.recordMetrics(n.ID, n.Metrics, time.Now())
 }
 
 // Metadata is updated separately so stale metric samples cannot overwrite admin edits.
@@ -160,6 +167,9 @@ func (s *Store) DeleteNode(id string) error {
 		return err
 	}
 	defer tx.Rollback()
+	if _, err = tx.Exec("DELETE FROM metric_samples WHERE node=?", id); err != nil {
+		return err
+	}
 	if _, err = tx.Exec("DELETE FROM nodes WHERE id=?", id); err != nil {
 		return err
 	}

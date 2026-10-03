@@ -30,32 +30,42 @@ func agentClient() *http.Client {
 	return &http.Client{Timeout: 20 * time.Second, CheckRedirect: func(_ *http.Request, _ []*http.Request) error { return http.ErrUseLastResponse }}
 }
 
+type pollResponse struct {
+	Task   *engine.Task `json:"task"`
+	Cancel string       `json:"cancel,omitempty"`
+}
+
 func readTask(body io.Reader, node string) (*engine.Task, error) {
+	response, err := readResponse(body, node)
+	return response.Task, err
+}
+func readResponse(body io.Reader, node string) (pollResponse, error) {
 	data, err := io.ReadAll(io.LimitReader(body, (1<<20)+1))
 	if err != nil {
-		return nil, err
+		return pollResponse{}, err
 	}
 	if len(data) > 1<<20 {
-		return nil, errors.New("hub response exceeds limit")
+		return pollResponse{}, errors.New("hub response exceeds limit")
 	}
-	var msg struct {
-		Task *engine.Task `json:"task"`
-	}
+	var msg pollResponse
 	decoder := json.NewDecoder(strings.NewReader(string(data)))
 	decoder.DisallowUnknownFields()
 	if err := decoder.Decode(&msg); err != nil {
-		return nil, errors.New("invalid hub response")
+		return pollResponse{}, errors.New("invalid hub response")
 	}
 	if decoder.Decode(new(any)) != io.EOF {
-		return nil, errors.New("invalid hub response")
+		return pollResponse{}, errors.New("invalid hub response")
+	}
+	if msg.Cancel != "" && (!engine.ValidID(msg.Cancel) || msg.Task != nil) {
+		return pollResponse{}, errors.New("invalid scan cancellation")
 	}
 	if msg.Task != nil {
 		if msg.Task.Node != node || !engine.ValidID(msg.Task.ID) || msg.Task.Status != "running" {
-			return nil, errors.New("task identity mismatch")
+			return pollResponse{}, errors.New("task identity mismatch")
 		}
 		if err := engine.ValidateRequest(msg.Task.Request); err != nil {
-			return nil, err
+			return pollResponse{}, err
 		}
 	}
-	return msg.Task, nil
+	return msg, nil
 }

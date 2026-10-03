@@ -10,6 +10,7 @@ export interface Node {
   id: string;
   name: string;
   group?: string;
+  scanControl?: boolean;
   lastSeen: string;
   roots: string[];
   scanRoots: string[];
@@ -44,6 +45,7 @@ export interface Scan {
   files: number;
   skipped: number;
   truncated: boolean;
+  reason?: string;
   at: string;
 }
 export interface Review {
@@ -70,7 +72,16 @@ export interface Plan {
   bytes: number;
   files: { path: string; size: number }[];
 }
+export interface ScanProgress {
+  visited: number;
+  files: number;
+  bytes: number;
+  limit: number;
+  elapsedMillis: number;
+}
 export interface Task {
+  progress?: ScanProgress;
+  cancelRequested?: boolean;
   id: string;
   node: string;
   request: { kind: string };
@@ -120,9 +131,11 @@ export async function task<T>(
   node: string,
   request: unknown,
   signal?: AbortSignal,
+  onUpdate?: (task: Task) => void,
 ): Promise<T> {
   signal = AbortSignal.any([session.signal, ...(signal ? [signal] : [])]);
   const created = await api<Task>("tasks", "POST", { node, request }, signal);
+  onUpdate?.(created);
   for (let i = 0; i < 130; i++) {
     await new Promise((r) => setTimeout(r, 1000));
     signal?.throwIfAborted();
@@ -132,6 +145,7 @@ export async function task<T>(
       undefined,
       signal,
     );
+    onUpdate?.(current);
     if (current.status === "succeeded") {
       if (current.result == null)
         throw new Error("任务结果已过期，请重新扫描或预览。");

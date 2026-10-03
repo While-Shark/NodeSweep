@@ -186,3 +186,41 @@ chmod 600 nodesweep-agent.json
 命令读取受保护配置并输出不含凭证和管理端 URL 的 JSON。检查目录是否能在不跟随符号链接的情况下打开、可见进程描述符是否可读取；任一检查失败返回非零退出码。不启动服务、不连接管理端、不创建数据库、不修改文件；不能与 `-init` 或 `-version` 同时使用。该检查不验证网络连通性、TLS、数据库、Webhook 或清理目录的写入权限，启动和正式预览仍需验证这些条件。
 
 进程检查只覆盖当前可见命名空间，不能证明能看到宿主机所有进程；容器内 Agent 仍不适合清理宿主机日志。SELinux/hidepid、宝塔/1Panel 自定义目录和 arm64 实机验证仍是待办。
+
+## 扫描进度、取消与资源预算
+
+先升级 Hub，再升级 Agent。新 Agent 的每次上报会携带扫描控制能力；旧 Agent 保持原有扫描/清理功能，但不提供取消。管理端令牌可以通过 `POST /api/tasks/{id}/cancel` 取消等待或运行中的扫描；不支持中止清理、预览或其他任务。单机取消在本地生效，远程取消经 Agent 下一次轮询传达，正常情况下约 5 秒；断网、请求超时或阻塞文件系统 I/O 可能延迟。任务完成与取消竞争时，已经完成的结果可能仍显示成功。
+
+进度是已访问和已纳入树图的条目数、已累计的分配空间，不是已知总量的百分比。取消扫描保留部分结果；未达到完整扫描时不应将其当作完整磁盘统计。离开网页只停止浏览器等待，不取消远程任务，真正取消需使用取消按钮。
+
+可在实际执行扫描的节点配置文件加入：
+
+```json
+"scanBudget": {
+  "entries": 100000,
+  "seconds": 60,
+  "depth": 64,
+  "treeBytes": 8388608,
+  "pauseMillis": 5
+}
+```
+
+省略或零值使用默认预算。条目最多 100000、深度最多 64、时间最多 80 秒、保守树图预算最多 16 MiB，每 128 项暂停 1–100 毫秒（默认 5）。目录按 256 项读取。达到限制显示截断原因；8 MiB 是保守 JSON 转义估算，实际可保留条目数可能低于 100000。预算只在 Agent 本地配置，Hub 任务不能扩大预算。
+
+成功、失败、中断扫描合计只保留最近 10 份完整载荷，过期树图会清除，任务元数据、进度和错误保留原有 30 天策略。回滚到不认识 `scanBudget` 的旧版前，应先备份并移除该新增配置字段。
+
+### Metric history
+
+The overview includes authenticated per-node CPU, memory, disk and inode utilization history. Select a node (the overview group filter also limits the selector), a mount and the last 24 hours or seven days. The data table is available for keyboard and screen-reader access. Refresh explicitly to obtain the latest history.
+
+The hub stores the first accepted heartbeat per node per receipt minute, independently of the Agent timestamp. SQLite keeps up to seven days and 20,000 samples globally, so many nodes may have a shorter history. Each sample retains numeric utilization and up to 16 mount paths; path length and a conservative 4 KiB payload budget bound storage. Missing and invalid measurements remain unavailable, and offline periods are not filled with zeros. History uses 15-minute means for 24 hours and hourly means for seven days; a partly observed bucket averages its available samples, with the count shown in the table. Long gaps break chart lines. Revoking a node removes its metric history.
+
+`GET /api/metrics/{node}?period=24h` (or `7d`) uses the administrator credential; Agent credentials cannot read another node's history. History contains mount paths but no hostnames, credentials, process details or cleanup authorization. It survives hub restarts. Retention deletes rows for reuse; SQLite may keep the allocated database file size.
+
+### Cleanup failure notifications
+
+Enable alerts and the separate **Notify cleanup failures** option to record failed or interrupted `execute` tasks created within the last 24 hours. Both controls default to off. Enabling the option can report recent failures; scans and previews are excluded. Records contain node name/ID, task ID, event kind and time. Raw task errors, rule/log paths, task results and credentials are omitted; inspect the authenticated task page for details. A failed execution may have deleted some files before failing. The notification never retries cleanup or authorizes another deletion.
+
+The existing `webhookURL` sends the same JSON event to a public HTTPS receiver, with `kind: "cleanup_failure"` and `task` holding the task ID. Private addresses, DNS rebinding and redirects remain blocked. No URL is exposed through the browser API. A custom relay can transform this JSON into an email or platform message; native SMTP and platform-specific adapters are not included yet. Configure relay credentials outside NodeSweep, and accept only the event fields your relay needs.
+
+Each pass processes at most ten unreported failures, within a 20-second processing context. The task stores a deduplication marker atomically with the event before sending. Restarting or receiving duplicate Agent results cannot replay the notification. Delivery failures are recorded without raw errors and are not retried automatically; a crash after recording may leave delivery incomplete. Events share the existing latest-100 retention, and the deduplication marker expires with the task's normal retention. Cleanup failures have no synthetic recovery event.

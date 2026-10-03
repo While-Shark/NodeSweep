@@ -102,6 +102,7 @@ const server = http.createServer((req, res) => {
       };
       let fixtureNodes = [node];
       const submitted = [];
+      let cancellableScan = false;
       let holdDetail = false,
         releaseDetail,
         notifyHeld;
@@ -118,6 +119,23 @@ const server = http.createServer((req, res) => {
           });
         if (request.headers().authorization === "Bearer bad")
           return send({ error: "invalid administrator token" }, 401);
+        if (endpoint.startsWith("metrics/"))
+          return send([
+            {
+              at: new Date(Date.now() - 3600000).toISOString(),
+              samples: 5,
+              cpu: 20,
+              memory: 40,
+              disks: [{ path: "/", used: 60, inodes: 10 }],
+            },
+            {
+              at: new Date(Date.now() - 1800000).toISOString(),
+              samples: 4,
+              cpu: 80,
+              memory: 50,
+              disks: [{ path: "/", used: 61, inodes: 11 }],
+            },
+          ]);
         if (endpoint === "nodes")
           return send(
             request.method() === "POST"
@@ -163,6 +181,19 @@ const server = http.createServer((req, res) => {
             version: 1,
             rules: [{ ...rule, id: "" }],
           });
+        if (
+          endpoint.startsWith("tasks/") &&
+          endpoint.endsWith("/cancel") &&
+          request.method() === "POST"
+        ) {
+          const job = tasks.get(endpoint.split("/")[1]);
+          job.status = "failed";
+          job.error = "context canceled";
+          job.cancelRequested = true;
+          job.result.truncated = true;
+          job.result.reason = "cancelled";
+          return send(job);
+        }
         if (endpoint === "tasks" && request.method() === "POST") {
           submitted.push(body);
           const id = "t" + (tasks.size + 1);
@@ -224,7 +255,22 @@ const server = http.createServer((req, res) => {
           tasks.set(id, {
             id,
             node: body.node,
-            status: body.node === "remote" ? "failed" : "succeeded",
+            status:
+              body.node === "remote"
+                ? "failed"
+                : cancellableScan && body.request.kind === "scan"
+                  ? "running"
+                  : "succeeded",
+            progress:
+              cancellableScan && body.request.kind === "scan"
+                ? {
+                    visited: 100,
+                    files: 90,
+                    bytes: 4096,
+                    limit: 100000,
+                    elapsedMillis: 1000,
+                  }
+                : undefined,
             error: body.node === "remote" ? "node offline" : undefined,
             created: new Date().toISOString(),
             request: body.request,
@@ -465,7 +511,8 @@ const server = http.createServer((req, res) => {
         .click();
       await page.locator("aside nav button").nth(4).click();
       await page.locator(".form-grid").waitFor();
-      await page.locator("form input[type=checkbox]").check();
+      await page.locator("form input[type=checkbox]").first().check();
+      await page.locator("form input[type=checkbox]").nth(1).check();
       await page
         .getByRole("button", {
           name: label(locale, "保存告警设置"),
@@ -578,6 +625,47 @@ const server = http.createServer((req, res) => {
         () => document.querySelectorAll(".node-card").length === 1,
       );
       assert.equal(await page.locator(".node-card").count(), 1);
+      await page.locator(".history-charts figure").first().waitFor();
+      assert.equal(await page.locator(".history-charts figure").count(), 4);
+      assert.equal(
+        await page
+          .locator(".history-charts figure")
+          .first()
+          .locator(".chart-line")
+          .count(),
+        2,
+      );
+      await page
+        .getByText(label(locale, "查看指标数据"), { exact: true })
+        .click();
+      assert.equal(await page.locator(".history-table tbody tr").count(), 2);
+      await page.locator(".history-controls select").nth(1).selectOption("7d");
+      await page.waitForFunction(
+        () =>
+          document.querySelectorAll(
+            ".history-charts figure:first-child .chart-line",
+          ).length === 1,
+      );
+      cancellableScan = true;
+      await page.locator("aside nav button").nth(1).click();
+      await page
+        .getByRole("button", { name: label(locale, "扫描目录"), exact: true })
+        .click();
+      await page
+        .getByRole("button", { name: label(locale, "取消扫描"), exact: true })
+        .click();
+      await page.locator(".treemap .tile").waitFor();
+      assert.ok(
+        (await page.locator("main").innerText()).includes(
+          label(locale, "任务已取消"),
+        ),
+      );
+      assert.ok(
+        (await page.locator("main").innerText()).includes(
+          label(locale, "扫描已取消"),
+        ),
+      );
+      cancellableScan = false;
       fixtureNodes[2].lastSeen = new Date().toISOString();
       await page.locator("aside nav button").nth(5).click();
       await page.waitForFunction(

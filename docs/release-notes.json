@@ -1,35 +1,50 @@
 {
-  "version": "0.1.0-alpha.6",
+  "version": "0.1.0-alpha.7",
   "changes": {
     "en": [
-      "Add an Agent configuration wizard for hub HTTPS address, cleanup/scan allowlists and optional custom panel directories. Panel discovery never expands cleanup permissions.",
-      "Validate protected cleanup roots, directory counts and hub URLs before enrollment, and snapshot settings for the downloaded credential configuration.",
-      "Add the read-only -check command for local configuration, directory access without symlinks and visible process descriptor access. It does not start services, connect to the hub or create the database, and reports no credentials or hub URLs.",
-      "Add wizard and preflight tests, five-language browser validation, race checks and two-agent smoke coverage. Process checks cannot prove host PID namespace visibility; real VPS validation remains required."
+      "Define remaining completion goals with explicit acceptance criteria and separate real VPS validation from software tests.",
+      "Replace whole-directory scan listings with 256-entry batches and descriptor-relative no-symlink traversal. Add local entry, depth, time, conservative output-size and cancellable pacing budgets.",
+      "Add aggregate scan progress and authenticated scan cancellation for standalone and outbound Agents. Preserve partial results, verify task ownership and refuse cancellation of destructive tasks or unsupported old Agents.",
+      "Bound retained scan payloads across successful, failed and interrupted scans to the newest ten, while retaining task metadata and errors.",
+      "Add authenticated per-node CPU, memory, disk and inode history with 24-hour/seven-day charts and accessible data tables. Keep at most one receipt-time sample per minute, seven days and 20,000 samples globally; show missing periods as gaps.",
+      "Add opt-in cleanup failure notifications through the existing public HTTPS webhook. Persist deduplication before delivery, bound processing to ten failures per pass, and omit raw task errors, log paths and credentials.",
+      "Add wide/deep directory, size/time limits, symlink, ownership, cancelled queue, outbound cancellation and five-language browser regressions. Upgrade the hub first, then Agents; cooperative cancellation may be delayed by blocked filesystem I/O."
     ],
     "zh-CN": [
-      "加入 Agent 配置向导，可设置管理端 HTTPS 地址、清理及扫描白名单、自定义面板目录；面板识别不会扩大清理权限。",
-      "创建节点前校验受保护清理目录、目录数量和管理端地址，并以提交时的配置快照生成下载文件。",
-      "加入只读 -check 命令，检查本地配置、不跟随符号链接的目录访问及可见进程描述符；不启动服务、不连接管理端、不创建数据库，不输出凭证或管理端地址。",
-      "补充向导与诊断测试、五语浏览器回归、竞态检查和双 Agent 冒烟验证；进程检查不能证明宿主 PID 命名空间可见性，真实 VPS 验证仍需完成。"
+      "制定剩余任务的完成目标和验收条件，真实 VPS 验证与软件测试分开记录。",
+      "将整目录读取改为每批 256 项，并使用基于文件描述符、不跟随符号链接的遍历；加入节点本地条目数、深度、时间、保守输出大小和可取消节流预算。",
+      "加入单机及主动连接 Agent 的扫描进度和鉴权取消；保留部分结果，校验任务归属，拒绝取消清理任务及不支持功能的旧 Agent。",
+      "成功、失败和中断扫描均仅保留最近十份树图载荷，任务元数据与错误仍保留。",
+      "加入鉴权的逐节点 CPU、内存、磁盘及 inode 历史图表，支持最近 24 小时／七天和可访问的数据表；按接收时间每分钟最多一条，最多保留七天、全局两万条，缺失时段留空。",
+      "加入默认关闭的清理失败通知，复用公开 HTTPS Webhook；发送前持久化去重，每轮最多处理十条失败，不发送原始任务错误、日志路径或凭据。",
+      "新增宽/深目录、输出与时间限制、符号链接、归属、取消队列、远程取消及五语浏览器回归；先升级管理端，再升级 Agent。协作式取消可能受阻塞文件系统 I/O 延迟。"
     ],
     "zh-TW": [
-      "加入 Agent 設定精靈，可設定管理端 HTTPS 位址、清理及掃描白名單、自訂面板目錄；面板識別不會擴大清理權限。",
-      "建立節點前驗證受保護清理目錄、目錄數量和管理端位址，並以提交時的設定快照產生下載檔案。",
-      "加入唯讀 -check 命令，檢查本機設定、不跟隨符號連結的目錄存取及可見程序描述符；不啟動服務、不連接管理端、不建立資料庫，不輸出憑證或管理端位址。",
-      "補充精靈與診斷測試、五語瀏覽器回歸、競態檢查和雙 Agent 冒煙驗證；程序檢查無法證明宿主 PID 命名空間可見性，仍需真實 VPS 驗證。"
+      "制定剩餘任務的完成目標和驗收條件，真實 VPS 驗證與軟體測試分開記錄。",
+      "將整目錄讀取改為每批 256 項，使用基於檔案描述符且不跟隨符號連結的遍歷；加入節點本機條目数、深度、時間、保守輸出大小及可取消節流預算。",
+      "加入單機及主動連線 Agent 的掃描進度與驗證取消；保留部分結果、驗證任務歸屬，拒絕取消清理任務及不支援功能的舊 Agent。",
+      "成功、失敗及中斷掃描只保留最近十份樹圖載荷，任務中繼資料與錯誤仍保留。",
+      "加入經驗證的逐節點 CPU、記憶體、磁碟與 inode 歷史圖表，支援最近 24 小時／七天及無障礙資料表；依接收時間每分鐘最多一筆，最多保留七天、全域兩萬筆，缺失時段留空。",
+      "加入預設關閉的清理失敗通知，沿用公開 HTTPS Webhook；傳送前持久化去重，每輪最多處理十筆失敗，不傳送原始任務錯誤、日誌路徑或憑據。",
+      "新增寬/深目錄、輸出與時間限制、符號連結、歸屬、取消佇列、遠端取消及五語瀏覽器回歸；先升級管理端，再升級 Agent。協作式取消可能受阻塞檔案系統 I/O 延遲。"
     ],
     "ja": [
-      "Agent設定ウィザードを追加。ハブHTTPSアドレス、削除・スキャン許可リスト、独自パネルの場所を指定できます。パネル検出は削除権限を拡張しません。",
-      "登録前に保護ディレクトリ、件数、ハブURLを検証し、送信時の設定をダウンロードファイルに保持します。",
-      "読み取り専用の-checkを追加。ローカル設定、シンボリックリンクを使わないディレクトリのアクセス、可視プロセスの記述子を確認します。サービス開始、ハブ接続、DB作成を行わず、認証情報やハブURLも出力しません。",
-      "ウィザードと診断のテスト、5言語ブラウザー検証、競合検査、2 Agentの動作確認を追加。プロセス検査はホストPID名前空間の可視性を証明できず、実VPSの検証が必要です。"
+      "残りの作業に完了目標と検証条件を設定し、実VPS検証をソフトウェアテストと分けて記録。",
+      "ディレクトリ全体の読み取りを256件ずつの処理へ変更し、記述子を使ってリンクを追跡しない探索を実装。項目数、深さ、時間、保守的な出力サイズとキャンセル可能な待機の上限を追加。",
+      "単独モードと接続型Agentに集計進捗と認証済みスキャンキャンセルを追加。部分結果と所有権を保持し、削除タスクや非対応Agentのキャンセルを拒否。",
+      "成功・失敗・中断を含め、保存するスキャンツリーは最新10件。タスク情報とエラーは保持。",
+      "認証済みノード別CPU・メモリ・ディスク・inode履歴と24時間／7日間のグラフ、読み取り可能なデータ表を追加。受信時刻で毎分1件、最長7日・全体2万件を保存し、欠損期間は空白で表示。",
+      "既存の公開HTTPS Webhookで、既定で無効なクリーンアップ失敗通知を追加。送信前に重複防止を保存し、各処理を10件に制限。生のタスクエラー、ログパス、認証情報は送信しません。",
+      "広い／深いディレクトリ、サイズ・時間制限、リンク、所有権、待機解除、遠隔キャンセル、5言語ブラウザー検証を追加。ハブを先に更新し、次にAgentを更新してください。ファイルシステムI/Oがブロックされると協調キャンセルが遅れる場合があります。"
     ],
     "ko": [
-      "Agent 설정 마법사를 추가했습니다. 허브 HTTPS 주소, 정리·스캔 허용 목록과 사용자 지정 패널 경로를 설정합니다. 패널 탐지는 정리 권한을 확대하지 않습니다.",
-      "등록 전에 보호 디렉터리, 디렉터리 수와 허브 URL을 검증하고 제출 시점의 설정으로 다운로드 파일을 생성합니다.",
-      "읽기 전용 -check를 추가했습니다. 로컬 설정, 심볼릭 링크 없는 디렉터리 접근과 보이는 프로세스 설명자를 확인합니다. 서비스 시작, 허브 연결, DB 생성 없이 자격 증명이나 허브 URL도 출력하지 않습니다.",
-      "마법사와 진단 테스트, 5개 언어 브라우저 검증, 경쟁 상태 검사와 두 Agent 동작 검증을 추가했습니다. 프로세스 검사는 호스트 PID 네임스페이스 가시성을 증명하지 못하므로 실제 VPS 검증이 필요합니다."
+      "남은 작업의 완료 목표와 검증 조건을 정하고 실제 VPS 검증을 소프트웨어 테스트와 구분해 기록합니다.",
+      "디렉터리 전체 읽기를 256개씩 처리하도록 변경하고 설명자 기반으로 심볼릭 링크를 따르지 않는 탐색을 추가했습니다. 항목 수, 깊이, 시간, 보수적인 출력 크기와 취소 가능한 대기 예산을 적용합니다.",
+      "단독 모드와 연결형 Agent에 집계 진행 상황과 인증된 스캔 취소를 추가했습니다. 부분 결과를 유지하고 소유권을 검증하며 삭제 작업이나 미지원 Agent의 취소를 거부합니다.",
+      "성공·실패·중단 스캔의 트리 데이터는 최신 10개만 유지하며 작업 정보와 오류는 보존합니다.",
+      "인증된 노드별 CPU, 메모리, 디스크, inode 기록과 24시간/7일 차트 및 접근 가능한 데이터 표를 추가했습니다. 수신 시각 기준 분당 최대 1개, 최대 7일 및 전체 2만 개를 보관하며 누락 구간은 비워 둡니다.",
+      "기본 비활성화된 정리 실패 알림을 기존 공개 HTTPS Webhook으로 추가했습니다. 전송 전에 중복 방지를 저장하고 회당 최대 10개를 처리하며 원시 작업 오류, 로그 경로 및 자격 증명은 보내지 않습니다.",
+      "넓고 깊은 디렉터리, 크기·시간 제한, 링크, 소유권, 대기 취소, 원격 취소와 5개 언어 브라우저 회귀를 추가했습니다. 허브부터 업그레이드한 후 Agent를 업그레이드하세요. 파일 시스템 I/O가 막히면 협력적 취소가 지연될 수 있습니다."
     ]
   }
 }

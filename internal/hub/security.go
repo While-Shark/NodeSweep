@@ -3,6 +3,7 @@ package hub
 import (
 	"encoding/json"
 	"errors"
+	"github.com/While-Shark/NodeSweep/internal/engine"
 	"math"
 	"path/filepath"
 	"strings"
@@ -25,6 +26,15 @@ func bearer(header string) string {
 }
 
 func validatePoll(b Poll) error {
+	if b.TaskID != "" && (!b.Busy || !engine.ValidID(b.TaskID)) {
+		return errors.New("invalid active task metadata")
+	}
+	if p := b.Progress; p != nil {
+		if b.TaskID == "" || !b.Busy || p.Visited < 0 || p.Visited > 100000 || p.Files < 0 || p.Files > p.Visited || p.Bytes < 0 || p.Limit < 1 || p.Limit > 100000 || p.ElapsedMillis < 0 || p.ElapsedMillis > 180000 {
+			return errors.New("invalid scan progress")
+		}
+	}
+
 	if len(b.Roots) > 64 || len(b.ScanRoots) > 64 || len(b.Metrics.Disks) > 128 || len(b.Metrics.Host) > 255 || len(b.Metrics.Load) > 100 || len(b.Metrics.Uptime) > 100 {
 		return errors.New("node metadata exceeds limits")
 	}

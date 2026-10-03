@@ -138,3 +138,14 @@ watch(
   },
   { immediate: true },
 );
+
+export function scanReason(reason: string): string {
+  const keys: Record<string, MessageKey> = {
+    entries: "条目数量上限",
+    tree_bytes: "结果大小上限",
+    depth: "目录深度上限",
+    time: "扫描时间上限",
+    cancelled: "扫描已取消",
+  };
+  return keys[reason] ? t(keys[reason]) : reason;
+}

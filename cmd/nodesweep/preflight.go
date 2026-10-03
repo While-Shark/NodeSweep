@@ -12,6 +12,9 @@ import (
 )
 
 func validateConfig(c Config) error {
+	if err := engine.ValidateScanBudget(c.ScanBudget); err != nil {
+		return err
+	}
 	if c.Mode != "standalone" && c.Mode != "hub" && c.Mode != "agent" {
 		return errors.New("mode must be standalone, hub or agent")
 	}

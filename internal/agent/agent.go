@@ -27,6 +27,10 @@ func Run(ctx context.Context, address, node, token string, e *engine.Engine) err
 	defer worker.Wait()
 	var pending *engine.Task
 	busy := false
+	var activeID, activeKind string
+	var cancelActive context.CancelFunc
+	var progressMu sync.Mutex
+	var progress *engine.ScanProgress
 	for {
 		select {
 		case <-ctx.Done():
@@ -34,9 +38,21 @@ func Run(ctx context.Context, address, node, token string, e *engine.Engine) err
 		case t := <-done:
 			pending = &t
 			busy = false
+			activeID = ""
+			activeKind = ""
+			if cancelActive != nil {
+				cancelActive()
+				cancelActive = nil
+			}
+			progressMu.Lock()
+			progress = nil
+			progressMu.Unlock()
 		default:
 		}
-		body, err := json.Marshal(hub.Poll{Node: node, Metrics: sampler.Read(), Roots: e.Roots, ScanRoots: e.ScanRoots, Result: pending, Busy: busy})
+		progressMu.Lock()
+		snapshot := progress
+		progressMu.Unlock()
+		body, err := json.Marshal(hub.Poll{ScanControl: true, TaskID: activeID, Progress: snapshot, Node: node, Metrics: sampler.Read(), Roots: e.Roots, ScanRoots: e.ScanRoots, Result: pending, Busy: busy})
 		if err != nil {
 			return err
 		}
@@ -50,21 +66,36 @@ func Run(ctx context.Context, address, node, token string, e *engine.Engine) err
 		resp, err := client.Do(req)
 		if err == nil {
 			var next *engine.Task
+			var response pollResponse
 			if resp.StatusCode == 200 {
-				next, err = readTask(resp.Body, node)
+				response, err = readResponse(resp.Body, node)
+				next = response.Task
 			} else {
 				err = fmt.Errorf("hub HTTP %d", resp.StatusCode)
 			}
 			resp.Body.Close()
 			if err == nil {
 				pending = nil
+				if response.Cancel != "" {
+					if response.Cancel == activeID && activeKind == "scan" && cancelActive != nil {
+						cancelActive()
+					} else {
+						log.Print("ignored cancellation for a different or non-scan task")
+					}
+				}
 				if next != nil && !busy {
 					busy = true
 					t := *next
+					activeID = t.ID
+					activeKind = t.Request.Kind
+					work, cancel := context.WithTimeout(ctx, 90*time.Second)
+					cancelActive = cancel
+					if t.Request.Kind == "scan" {
+						work = engine.WithScanProgress(work, func(update engine.ScanProgress) { progressMu.Lock(); progress = &update; progressMu.Unlock() })
+					}
 					worker.Add(1)
 					go func() {
 						defer worker.Done()
-						work, cancel := context.WithTimeout(ctx, 90*time.Second)
 						defer cancel()
 						result, runErr := e.Run(work, t.Request)
 						t.Result = result

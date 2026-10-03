@@ -13,6 +13,7 @@ import (
 )
 
 type Engine struct {
+	ScanBudget  ScanBudget
 	inspectOpen func() (map[[2]uint64]bool, error)
 	Roots       []string
 	ScanRoots   []string

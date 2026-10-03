@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import MetricsHistory from "./MetricsHistory.vue";
 import { t, number } from "../i18n";
 import { computed, ref } from "vue";
 import { size, online, type Node } from "../api";
@@ -120,6 +121,7 @@ const free = computed(() =>
         </div>
       </button>
     </div>
+    <MetricsHistory :nodes="visible" />
     <div v-if="!nodes.length" class="card empty">
       <h3>{{ t("接入你的第一台服务器") }}</h3>
       <p>{{ t("点击右上角“添加节点”，生成这台 VPS 的独立配置。") }}</p>
